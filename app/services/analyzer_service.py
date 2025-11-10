@@ -1,0 +1,182 @@
+"""
+Analyzer Service - Business logic cho phân tích malware
+"""
+import os
+import time
+from typing import List, Dict, Any, Optional
+from pathlib import Path
+
+import sys
+import os
+# Add project root to path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+from app.core.config import settings
+from app.services.yara_service import YaraService
+from app.services.hash_service import HashService
+from app.services.static_analyzer_service import StaticAnalyzerService
+from app.database.analysis_repository import AnalysisRepository
+
+class AnalyzerService:
+    """Service xử lý phân tích malware"""
+    
+    def __init__(self):
+        self.yara_service = YaraService()
+        self.hash_service = HashService()
+        self.static_analyzer_service = StaticAnalyzerService()
+        self.analysis_repo = AnalysisRepository()
+    
+    async def analyze_single_file(self, filepath: str) -> List[Dict[str, Any]]:
+        """
+        Phân tích một file đơn lẻ
+        
+        Returns:
+            List of analysis results
+        """
+        results = []
+        
+        # 1) Hash-based detection
+        hash_results = await self.hash_service.check_hash(filepath)
+        results.extend(hash_results)
+        
+        # Get SHA256 for infoUrl
+        sha256 = self.hash_service.calculate_hash(filepath)
+        
+        # 3) YARA scan
+        yara_results = self.yara_service.scan_file(filepath)
+        
+        # Add SHA256 to YARA results for infoUrl
+        if yara_results and sha256:
+            for result in yara_results:
+                if result.get("type") == "yara" and not result.get("infoUrl"):
+                    result["infoUrl"] = f"https://bazaar.abuse.ch/sample/{sha256}/"
+        
+        results.extend(yara_results)
+        
+        # 4) Nếu không phát hiện gì
+        if not results:
+            results.append({
+                "type": "clean",
+                "message": "[OK] Khong phat hien malware",
+                "infoUrl": None
+            })
+        
+        return results
+    
+    async def analyze_and_save(self, filepath: str, filename: str) -> Dict[str, Any]:
+        """
+        Phân tích file và lưu kết quả vào database
+        
+        Returns:
+            Dict chứa analysis_id và results
+        """
+        import time
+        import os
+        from datetime import datetime
+        
+        start_time = time.time()
+        
+        # Phân tích file
+        results = await self.analyze_single_file(filepath)
+        static_analysis = self.analyze_with_static_analyzer(filepath)
+        
+        elapsed = time.time() - start_time
+        
+        # Xác định có malware không
+        malware_detected = any(
+            result.get("type") in ["hash", "yara"] 
+            for result in results
+        )
+        
+        # Lấy thông tin file
+        file_size = os.path.getsize(filepath) if os.path.exists(filepath) else None
+        sha256 = self.hash_service.calculate_hash(filepath)
+        md5 = static_analysis.get("hashes", {}).get("md5")
+        
+        # Chuẩn bị dữ liệu để lưu
+        analysis_data = {
+            'filename': filename,
+            'sha256': sha256,
+            'md5': md5,
+            'file_size': file_size,
+            'upload_time': datetime.now(),
+            'analysis_time': elapsed,
+            'malware_detected': malware_detected,
+            'yara_matches': static_analysis.get("yara_matches", []),
+            'pe_info': static_analysis.get("pe_info"),
+            'suspicious_strings': static_analysis.get("strings", [])[:20],  # Limit 20
+            'capabilities': static_analysis.get("capabilities", [])
+        }
+        
+        # Lưu vào database
+        try:
+            analysis_id = await self.analysis_repo.create(analysis_data)
+            analysis_data['id'] = analysis_id
+            analysis_data['results'] = results
+            return analysis_data
+        except Exception as e:
+            print(f"[WARN] Failed to save analysis to database: {e}")
+            # Vẫn trả về kết quả dù không lưu được
+            analysis_data['results'] = results
+            return analysis_data
+    
+    async def analyze_folder(self, file_paths: List[str]) -> List[Dict[str, Any]]:
+        """
+        Phân tích một folder chứa nhiều files
+        
+        Returns:
+            List of analysis results
+        """
+        all_results = []
+        malware_files = []
+        clean_files = []
+        
+        for filepath in file_paths:
+            try:
+                file_results = await self.analyze_single_file(filepath)
+                has_malware = any(result["type"] in ["hash", "yara"] for result in file_results)
+                
+                if has_malware:
+                    malware_files.append({
+                        "filepath": filepath,
+                        "results": file_results
+                    })
+                else:
+                    clean_files.append(filepath)
+            except Exception as e:
+                print(f"Error analyzing {filepath}: {e}")
+                continue
+        
+        # Tạo kết quả tổng hợp
+        if malware_files:
+            all_results.append({
+                "type": "folder_summary",
+                "message": f"[WARN] Phat hien {len(malware_files)} file chua malware trong {len(file_paths)} files",
+                "malware_count": len(malware_files),
+                "total_count": len(file_paths),
+                "clean_count": len(clean_files)
+            })
+            
+            # Thêm chi tiết từng file malware
+            for malware_file in malware_files:
+                all_results.extend(malware_file["results"])
+        else:
+            all_results.append({
+                "type": "clean",
+                "message": f"[OK] Folder sach - khong phat hien malware trong {len(file_paths)} files",
+                "infoUrl": None
+            })
+        
+        return all_results
+    
+    def analyze_with_static_analyzer(self, filepath: str) -> Dict[str, Any]:
+        """
+        Phân tích file với Static Analyzer (PE, strings, capabilities)
+        
+        Returns:
+            Dict với keys: hashes, yara_matches, pe_info, strings, capabilities
+        """
+        return self.static_analyzer_service.analyze_file(filepath)
+

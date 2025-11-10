@@ -1,0 +1,242 @@
+{% extends "base.html" %} {% block title %}Analysis Detail - Malware Detector{%
+endblock %} {% block page_title %}Analysis: {{ filename }}{% endblock %} {%
+block content %}
+<div class="max-w-7xl mx-auto">
+  <!-- Status Alert -->
+  {% if malware_detected %}
+  <div class="alert alert-danger mb-6">
+    <i class="fas fa-exclamation-triangle text-2xl"></i>
+    <div>
+      <h4 class="font-semibold">Malware Detected!</h4>
+      <p>This file has been identified as potentially malicious.</p>
+    </div>
+  </div>
+  {% else %}
+  <div class="alert alert-success mb-6">
+    <i class="fas fa-check-circle text-2xl"></i>
+    <div>
+      <h4 class="font-semibold">File is Clean</h4>
+      <p>No malware detected in this file.</p>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Quick Info Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-primary">
+      <p class="text-sm text-gray-600 mb-1">Analysis Time</p>
+      <p class="text-2xl font-bold text-gray-800">
+        {{ "%.2f"|format(elapsed) }}s
+      </p>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-secondary">
+      <p class="text-sm text-gray-600 mb-1">YARA Matches</p>
+      <p class="text-2xl font-bold text-gray-800">
+        {{ yara_count|default(0) }}
+      </p>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-warning">
+      <p class="text-sm text-gray-600 mb-1">File Size</p>
+      <p class="text-2xl font-bold text-gray-800">
+        {{ file_size|default("N/A") }}
+      </p>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-danger">
+      <p class="text-sm text-gray-600 mb-1">Status</p>
+      <p
+        class="text-2xl font-bold {% if malware_detected %}text-danger{% else %}text-secondary{% endif %}"
+      >
+        {% if malware_detected %}Malware{% else %}Clean{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="bg-white rounded-lg shadow-md">
+    <div class="border-b border-gray-200">
+      <div class="tabs">
+        <div class="tab active" data-tab="overview">
+          <i class="fas fa-info-circle mr-2"></i>Overview
+        </div>
+        <div class="tab" data-tab="yara">
+          <i class="fas fa-shield-alt mr-2"></i>YARA Results
+        </div>
+        <div class="tab" data-tab="hashes">
+          <i class="fas fa-fingerprint mr-2"></i>Hashes
+        </div>
+        <div class="tab" data-tab="static">
+          <i class="fas fa-file-code mr-2"></i>Static Analysis
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Contents -->
+    <div class="p-6">
+      <!-- Overview Tab -->
+      <div id="tab-overview" class="tab-content active">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+          File Information
+        </h3>
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <div>
+            <p class="text-sm text-gray-600">Filename</p>
+            <p class="font-medium text-gray-800">{{ filename }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Analysis Type</p>
+            <p class="font-medium text-gray-800">{{ analysis_type|title }}</p>
+          </div>
+        </div>
+
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Summary</h3>
+        <div class="space-y-4">
+          {% for r in result %} {% if r.type == "hash" %}
+          <div class="yara-match">
+            <h4 class="font-semibold text-gray-800 mb-2">
+              <i class="fas fa-database mr-2 text-orange-500"></i>Hash Match
+              Found
+            </h4>
+            <p class="text-sm text-gray-600 mb-1">
+              <strong>SHA256:</strong> <code class="hash">{{ r.sha256 }}</code>
+            </p>
+            <p class="text-sm text-gray-600 mb-1">
+              <strong>Malware Type:</strong>
+              <span class="text-danger font-semibold">{{ r.malwareType }}</span>
+            </p>
+            <p class="text-sm text-gray-600 mb-1">
+              <strong>First Seen:</strong> {{ r.firstSeen }}
+            </p>
+            {% if r.infoUrl %}
+            <a
+              href="{{ r.infoUrl }}"
+              target="_blank"
+              class="text-primary hover:underline text-sm"
+            >
+              <i class="fas fa-external-link-alt mr-1"></i>View on Abuse.ch
+            </a>
+            {% endif %}
+          </div>
+          {% elif r.type == "yara" %}
+          <div class="yara-match">
+            <h4 class="font-semibold text-gray-800 mb-2">
+              <i class="fas fa-shield-alt mr-2 text-purple-500"></i>YARA Rule
+              Matched
+            </h4>
+            <p class="text-sm text-gray-600 mb-1">
+              <strong>File:</strong> {{ r.file }}
+            </p>
+            <p class="text-sm text-gray-600 mb-1">
+              <strong>Rules Matched:</strong> {{ r.rule_count|default("N/A") }}
+            </p>
+            <pre class="mt-2"><code>{{ r.matches }}</code></pre>
+          </div>
+          {% elif r.type == "clean" %}
+          <div class="alert alert-success">
+            <i class="fas fa-check-circle mr-2"></i>
+            {{ r.message }}
+          </div>
+          {% endif %} {% endfor %}
+        </div>
+      </div>
+
+      <!-- YARA Tab -->
+      <div id="tab-yara" class="tab-content">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+          YARA Scan Results
+        </h3>
+        <div class="space-y-4">
+          {% for r in result %} {% if r.type == "yara" %}
+          <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-purple-500">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="font-semibold text-gray-800">{{ r.file }}</h4>
+              <span class="badge badge-warning"
+                >{{ r.rule_count|default(0) }} rules</span
+              >
+            </div>
+            <pre
+              class="bg-gray-800 text-gray-100 p-4 rounded mt-2 overflow-x-auto"
+            ><code>{{ r.matches }}</code></pre>
+          </div>
+          {% endif %} {% endfor %} {% if not result|selectattr("type",
+          "equalto", "yara")|list %}
+          <div class="empty-state">
+            <i class="fas fa-shield-alt"></i>
+            <p>No YARA matches found</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Hashes Tab -->
+      <div id="tab-hashes" class="tab-content">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">File Hashes</h3>
+        <div class="space-y-4">
+          {% for r in result %} {% if r.type == "hash" %}
+          <div class="bg-gray-50 rounded-lg p-4">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="font-semibold text-gray-800">Hash Detection</h4>
+              <span class="badge badge-danger">Malware</span>
+            </div>
+            <div class="space-y-2">
+              <div>
+                <p class="text-sm text-gray-600 mb-1">SHA256</p>
+                <div class="flex items-center gap-2">
+                  <code class="hash flex-1">{{ r.sha256 }}</code>
+                  <button
+                    onclick="copyToClipboard('{{ r.sha256 }}')"
+                    class="btn btn-sm"
+                  >
+                    <i class="fas fa-copy"></i>
+                  </button>
+                </div>
+              </div>
+              <div>
+                <p class="text-sm text-gray-600 mb-1">Malware Type</p>
+                <p class="font-semibold text-danger">{{ r.malwareType }}</p>
+              </div>
+              <div>
+                <p class="text-sm text-gray-600 mb-1">First Seen</p>
+                <p class="text-gray-800">{{ r.firstSeen }}</p>
+              </div>
+            </div>
+          </div>
+          {% endif %} {% endfor %}
+        </div>
+      </div>
+
+      <!-- Static Analysis Tab -->
+      <div id="tab-static" class="tab-content">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+          Static Analysis
+        </h3>
+        <div class="space-y-4">
+          <div class="bg-gray-50 rounded-lg p-4">
+            <h4 class="font-semibold text-gray-800 mb-2">
+              PE File Information
+            </h4>
+            <p class="text-sm text-gray-600">
+              PE analysis details will be displayed here
+            </p>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-4">
+            <h4 class="font-semibold text-gray-800 mb-2">Suspicious Strings</h4>
+            <p class="text-sm text-gray-600">
+              Extracted strings will be displayed here
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="mt-6 flex gap-4">
+    <a href="/analyses" class="btn btn-primary">
+      <i class="fas fa-arrow-left mr-2"></i>Back to Analyses
+    </a>
+    <button class="btn btn-secondary" onclick="window.location.reload()">
+      <i class="fas fa-redo mr-2"></i>Refresh
+    </button>
+  </div>
+</div>
+{% endblock %}

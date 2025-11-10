@@ -1,0 +1,327 @@
+{% extends "base.html" %} {% block title %}Submit File - Malware Detector{%
+endblock %} {% block page_title %}Submit File for Analysis{% endblock %} {%
+block content %}
+<div class="max-w-4xl mx-auto">
+  <!-- Upload Card -->
+  <div class="bg-white rounded-lg shadow-md p-8 mb-6">
+    <h3 class="text-xl font-semibold text-gray-800 mb-6">
+      <i class="fas fa-cloud-upload-alt mr-2 text-primary"></i>
+      Upload File or Folder
+    </h3>
+
+    <!-- Drag & Drop Zone -->
+    <div
+      id="dropZone"
+      class="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-primary transition-colors cursor-pointer bg-gray-50 hover:bg-gray-100"
+    >
+      <i class="fas fa-file-upload text-5xl text-gray-400 mb-4"></i>
+      <p class="text-lg font-medium text-gray-700 mb-2">
+        Drag & drop files here, or
+        <span
+          class="text-primary cursor-pointer"
+          onclick="document.getElementById('fileInput').click()"
+          >browse</span
+        >
+      </p>
+      <p class="text-sm text-gray-500">
+        Support: EXE, DLL, PDF, DOC, ZIP and more
+      </p>
+      <input type="file" id="fileInput" name="file" class="hidden" />
+      <input
+        type="file"
+        id="folderInput"
+        name="folderFiles"
+        webkitdirectory
+        directory
+        multiple
+        class="hidden"
+      />
+    </div>
+
+    <!-- File Info -->
+    <div id="fileInfo" class="mt-6 hidden">
+      <div class="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+        <div class="flex items-center">
+          <i class="fas fa-file text-2xl text-primary mr-4"></i>
+          <div>
+            <p class="font-medium text-gray-800" id="fileName">
+              No file selected
+            </p>
+            <p class="text-sm text-gray-500" id="fileSize">-</p>
+          </div>
+        </div>
+        <button id="removeFile" class="text-danger hover:text-danger-dark">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Options -->
+    <div class="mt-6 space-y-4">
+      <div class="flex items-center">
+        <input
+          type="radio"
+          id="singleFile"
+          name="uploadType"
+          value="file"
+          checked
+          class="mr-2"
+        />
+        <label for="singleFile" class="text-gray-700">Single File</label>
+      </div>
+      <div class="flex items-center">
+        <input
+          type="radio"
+          id="folder"
+          name="uploadType"
+          value="folder"
+          class="mr-2"
+        />
+        <label for="folder" class="text-gray-700"
+          >Folder (Multiple Files)</label
+        >
+      </div>
+    </div>
+
+    <!-- Submit Button -->
+    <button
+      id="submitBtn"
+      type="button"
+      class="w-full mt-6 px-6 py-4 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg transition-colors shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      <i class="fas fa-search mr-2"></i>
+      Start Analysis
+    </button>
+
+    <!-- Progress Bar -->
+    <div id="progressContainer" class="mt-6 hidden">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm font-medium text-gray-700">Uploading...</span>
+        <span class="text-sm text-gray-500" id="progressPercent">0%</span>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-2.5">
+        <div
+          id="progressBar"
+          class="bg-primary h-2.5 rounded-full transition-all duration-300"
+          style="width: 0%"
+        ></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Information Card -->
+  <div class="bg-white rounded-lg shadow-md p-6">
+    <h4 class="text-lg font-semibold text-gray-800 mb-4">
+      <i class="fas fa-info-circle mr-2 text-primary"></i>
+      Analysis Information
+    </h4>
+    <div class="space-y-3 text-sm text-gray-600">
+      <div class="flex items-start">
+        <i class="fas fa-check-circle text-secondary mr-2 mt-1"></i>
+        <p>
+          Files are analyzed using <strong>564+ YARA rules</strong> from the
+          official Yara-Rules project
+        </p>
+      </div>
+      <div class="flex items-start">
+        <i class="fas fa-check-circle text-secondary mr-2 mt-1"></i>
+        <p>
+          Hash-based detection using <strong>SHA256</strong> comparison with
+          malware database
+        </p>
+      </div>
+      <div class="flex items-start">
+        <i class="fas fa-check-circle text-secondary mr-2 mt-1"></i>
+        <p>
+          Static analysis includes <strong>PE file analysis</strong>, strings
+          extraction, and packer detection
+        </p>
+      </div>
+      <div class="flex items-start">
+        <i class="fas fa-shield-alt text-warning mr-2 mt-1"></i>
+        <p>Files are automatically deleted after analysis for security</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Analysis Modal (will show after submission) -->
+<div
+  id="analysisModal"
+  class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+>
+  <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 p-6">
+    <div class="text-center">
+      <div
+        class="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4"
+      ></div>
+      <h3 class="text-xl font-semibold text-gray-800 mb-2">
+        Analyzing File...
+      </h3>
+      <p class="text-gray-600 mb-4">Please wait while we analyze your file</p>
+      <div class="w-full bg-gray-200 rounded-full h-2.5">
+        <div
+          id="analysisProgress"
+          class="bg-primary h-2.5 rounded-full transition-all duration-300"
+          style="width: 0%"
+        ></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  // Upload functionality
+  document.addEventListener("DOMContentLoaded", function () {
+    const dropZone = document.getElementById("dropZone");
+    const fileInput = document.getElementById("fileInput");
+    const folderInput = document.getElementById("folderInput");
+    const fileInfo = document.getElementById("fileInfo");
+    const fileName = document.getElementById("fileName");
+    const fileSize = document.getElementById("fileSize");
+    const removeFile = document.getElementById("removeFile");
+    const submitBtn = document.getElementById("submitBtn");
+    const progressContainer = document.getElementById("progressContainer");
+    const progressBar = document.getElementById("progressBar");
+    const progressPercent = document.getElementById("progressPercent");
+    const analysisModal = document.getElementById("analysisModal");
+    const analysisProgress = document.getElementById("analysisProgress");
+
+    let selectedFiles = null;
+
+    // Drag & Drop handlers
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("border-primary", "bg-primary", "bg-opacity-5");
+    });
+
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.classList.remove("border-primary", "bg-primary", "bg-opacity-5");
+    });
+
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("border-primary", "bg-primary", "bg-opacity-5");
+      handleFiles(e.dataTransfer.files);
+    });
+
+    dropZone.addEventListener("click", () => {
+      const uploadType = document.querySelector(
+        'input[name="uploadType"]:checked'
+      ).value;
+      if (uploadType === "folder") {
+        folderInput.click();
+      } else {
+        fileInput.click();
+      }
+    });
+
+    fileInput.addEventListener("change", (e) => {
+      handleFiles(e.target.files);
+    });
+
+    folderInput.addEventListener("change", (e) => {
+      handleFiles(e.target.files);
+    });
+
+    function handleFiles(files) {
+      if (files.length === 0) return;
+
+      selectedFiles = files;
+
+      if (files.length === 1) {
+        const file = files[0];
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+      } else {
+        fileName.textContent = `${files.length} files selected`;
+        const totalSize = Array.from(files).reduce((sum, f) => sum + f.size, 0);
+        fileSize.textContent = formatFileSize(totalSize);
+      }
+
+      fileInfo.classList.remove("hidden");
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes === 0) return "0 Bytes";
+      const k = 1024;
+      const sizes = ["Bytes", "KB", "MB", "GB"];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+    }
+
+    removeFile.addEventListener("click", () => {
+      selectedFiles = null;
+      fileInput.value = "";
+      folderInput.value = "";
+      fileInfo.classList.add("hidden");
+    });
+
+    // Upload type change
+    document.querySelectorAll('input[name="uploadType"]').forEach((radio) => {
+      radio.addEventListener("change", () => {
+        fileInput.value = "";
+        folderInput.value = "";
+        selectedFiles = null;
+        fileInfo.classList.add("hidden");
+      });
+    });
+
+    // Submit handler
+    submitBtn.addEventListener("click", async () => {
+      if (!selectedFiles || selectedFiles.length === 0) {
+        alert("Please select a file or folder first");
+        return;
+      }
+
+      const formData = new FormData();
+      const uploadType = document.querySelector(
+        'input[name="uploadType"]:checked'
+      ).value;
+
+      if (uploadType === "folder") {
+        for (let i = 0; i < selectedFiles.length; i++) {
+          formData.append("folderFiles", selectedFiles[i]);
+        }
+      } else {
+        formData.append("file", selectedFiles[0]);
+      }
+
+      // Show progress
+      progressContainer.classList.remove("hidden");
+      submitBtn.disabled = true;
+
+      // Show analysis modal
+      analysisModal.classList.remove("hidden");
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 90) progress = 90;
+        analysisProgress.style.width = progress + "%";
+      }, 500);
+
+      try {
+        const response = await fetch("/submit", {
+          method: "POST",
+          body: formData,
+        });
+
+        clearInterval(progressInterval);
+        analysisProgress.style.width = "100%";
+
+        if (response.ok) {
+          const html = await response.text();
+          document.body.innerHTML = html;
+        } else {
+          throw new Error("Analysis failed");
+        }
+      } catch (error) {
+        clearInterval(progressInterval);
+        analysisModal.classList.add("hidden");
+        alert("Error: " + error.message);
+        submitBtn.disabled = false;
+      }
+    });
+  });
+</script>
+{% endblock %}
