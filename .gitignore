@@ -45,9 +45,6 @@ uploads/
 # YARA Rules (quá lớn, không cần version control)
 yara_rules/
 
-# YARA Rules (quá lớn, không cần version control)
-yara_rules/
-
 # Database
 *.db
 *.sqlite

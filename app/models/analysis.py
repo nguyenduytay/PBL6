@@ -4,7 +4,7 @@ Analysis Models - Database models cho lưu lịch sử phân tích
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AnalysisBase(BaseModel):
@@ -15,10 +15,10 @@ class AnalysisBase(BaseModel):
     file_size: Optional[int] = None
     analysis_time: float = 0.0
     malware_detected: bool = False
-    yara_matches: List[Dict[str, Any]] = field(default_factory=list)
+    yara_matches: List[Dict[str, Any]] = Field(default_factory=list)
     pe_info: Optional[Dict[str, Any]] = None
-    suspicious_strings: List[str] = field(default_factory=list)
-    capabilities: List[Dict[str, Any]] = field(default_factory=list)
+    suspicious_strings: List[str] = Field(default_factory=list)
+    capabilities: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class AnalysisCreate(AnalysisBase):
