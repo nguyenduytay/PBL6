@@ -11,6 +11,44 @@ class Database:
     def __init__(self):
         self.pool: Optional[aiomysql.Pool] = None
     
+    async def create_database_if_not_exists(self):
+        """Tự động tạo database nếu chưa tồn tại"""
+        db_name = os.getenv("DB_NAME", "malwaredetection")
+        
+        try:
+            # Kết nối vào MySQL server (không chỉ định database)
+            temp_pool = await aiomysql.create_pool(
+                user=os.getenv("DB_USER", "sa"),
+                password=os.getenv("DB_PASSWORD", "123456"),
+                host=os.getenv("DB_HOST", "127.0.0.1"),
+                port=int(os.getenv("DB_PORT", "3306")),
+                autocommit=True,
+                minsize=1,
+                maxsize=1
+            )
+            
+            async with temp_pool.acquire() as conn:
+                async with conn.cursor() as cursor:
+                    # Kiểm tra database đã tồn tại chưa
+                    await cursor.execute("SHOW DATABASES LIKE %s", (db_name,))
+                    result = await cursor.fetchone()
+                    
+                    if not result:
+                        # Tạo database nếu chưa tồn tại
+                        await cursor.execute(f"CREATE DATABASE `{db_name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
+                        print(f"[OK] Database '{db_name}' created successfully")
+                    else:
+                        print(f"[INFO] Database '{db_name}' already exists")
+            
+            temp_pool.close()
+            await temp_pool.wait_closed()
+            return True
+            
+        except Exception as e:
+            print(f"[WARN] Cannot create database '{db_name}': {e}")
+            print("[INFO] Please create database manually or check MySQL connection")
+            return False
+    
     async def connect(self):
         """Tạo connection pool"""
         if not self.pool:
@@ -55,7 +93,13 @@ async def get_db():
         raise Exception(f"Database connection failed: {e}")
 
 async def init_db():
-    """Initialize database - tạo tables nếu chưa có"""
+    """Initialize database - tự động tạo database và tables nếu chưa có"""
+    # Bước 1: Tạo database nếu chưa tồn tại
+    db_created = await _db.create_database_if_not_exists()
+    if not db_created:
+        print("[WARN] Cannot create database. Will try to connect anyway...")
+    
+    # Bước 2: Kết nối vào database
     try:
         pool = await _db.connect()
     except Exception as e:
@@ -63,6 +107,7 @@ async def init_db():
         print("[INFO] Analysis history will not be saved. Check database configuration.")
         return False
     
+    # Bước 3: Tạo tables nếu chưa có
     try:
         async with pool.acquire() as conn:
             async with conn.cursor() as cursor:

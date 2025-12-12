@@ -15,13 +15,9 @@ Hệ thống đã được tích hợp để **tự động lưu lịch sử ph�
 # Hoặc sử dụng XAMPP/WAMP
 ```
 
-2. **Tạo database**:
+2. **Cấu hình trong `.env` hoặc environment variables**:
 
-```sql
-CREATE DATABASE malwaredetection;
-```
-
-3. **Cấu hình trong `.env` hoặc environment variables**:
+**⭐ LƯU Ý QUAN TRỌNG**: Database sẽ **TỰ ĐỘNG được tạo** khi chạy ứng dụng, bạn **KHÔNG CẦN** tạo database thủ công!
 
 ```env
 DB_USER=root
@@ -41,7 +37,12 @@ Nếu không setup database, hệ thống vẫn hoạt động bình thường:
 
 ## 🗄️ Database Schema
 
-Database sẽ **tự động tạo tables** khi ứng dụng khởi động (nếu kết nối thành công).
+Database và tables sẽ **tự động được tạo** khi ứng dụng khởi động (nếu kết nối thành công).
+
+**Quy trình tự động:**
+1. ✅ Tạo database `malwaredetection` nếu chưa tồn tại
+2. ✅ Tạo bảng `analyses` nếu chưa có
+3. ✅ Tạo bảng `yara_matches` nếu chưa có
 
 ### Bảng `analyses`
 
@@ -173,7 +174,9 @@ curl "http://localhost:5000/api/analyses"
 
 ### Lỗi: "Unknown database"
 
-- Tạo database: `CREATE DATABASE malwaredetection;`
+- Database sẽ tự động được tạo khi khởi động ứng dụng
+- Nếu vẫn lỗi, kiểm tra quyền của MySQL user có đủ để tạo database không
+- Hoặc tạo thủ công: `CREATE DATABASE malwaredetection;`
 - Hoặc đổi `DB_NAME` trong `.env`
 
 ### Database không bắt buộc

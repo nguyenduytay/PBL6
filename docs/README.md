@@ -60,13 +60,27 @@ Chào mừng đến với tài liệu dự án Malware Detector! Đây là hư�
      - PaaS platforms (Heroku, Railway)
      - Nginx reverse proxy
 
+### 📘 **Hướng Dẫn Chi Tiết**
+
+6. **[HUONG_DAN_CHI_TIET.md](./HUONG_DAN_CHI_TIET.md)** ⭐ **MỚI**
+   - **Mục đích**: Hướng dẫn chi tiết toàn diện về dự án
+   - **Dành cho**: Tất cả mọi người muốn hiểu sâu về dự án
+   - **Nội dung**:
+     - Giải thích vấn đề dự án giải quyết
+     - Sơ đồ kiến trúc dự án (ASCII art)
+     - Hướng dẫn chạy dự án chi tiết
+     - Hướng dẫn kết nối database từng bước
+     - Luồng xử lý khi upload file
+     - Troubleshooting đầy đủ
+
 ## 🗺️ Hướng Dẫn Đọc Tài Liệu
 
 ### **Cho Người Mới Bắt Đầu:**
 
-1. Đọc **[README.md](../README.md)** - Hiểu tổng quan dự án
-2. Đọc **[STRUCTURE.md](./STRUCTURE.md)** - Hiểu cấu trúc code
-3. Đọc **[ANALYSIS_TYPES.md](./ANALYSIS_TYPES.md)** - Hiểu cách phân tích hoạt động
+1. Đọc **[HUONG_DAN_CHI_TIET.md](./HUONG_DAN_CHI_TIET.md)** ⭐ - Hướng dẫn chi tiết toàn diện
+2. Đọc **[README.md](../README.md)** - Hiểu tổng quan dự án
+3. Đọc **[STRUCTURE.md](./STRUCTURE.md)** - Hiểu cấu trúc code
+4. Đọc **[ANALYSIS_TYPES.md](./ANALYSIS_TYPES.md)** - Hiểu cách phân tích hoạt động
 
 ### **Cho Developers:**
 
@@ -83,6 +97,7 @@ Chào mừng đến với tài liệu dự án Malware Detector! Đây là hư�
 
 | File | Mục Đích | Độ Khó | Thời Gian Đọc |
 |------|----------|--------|---------------|
+| **HUONG_DAN_CHI_TIET.md** ⭐ | Hướng dẫn chi tiết toàn diện | ⭐⭐ Trung bình | 30 phút |
 | **README.md** | Tổng quan, cách chạy | ⭐ Dễ | 10 phút |
 | **STRUCTURE.md** | Kiến trúc code | ⭐⭐ Trung bình | 15 phút |
 | **ANALYSIS_TYPES.md** | Giải thích phân tích | ⭐⭐ Trung bình | 20 phút |
@@ -92,10 +107,16 @@ Chào mừng đến với tài liệu dự án Malware Detector! Đây là hư�
 ## 🎯 Câu Hỏi Thường Gặp
 
 ### **Dự án này làm gì?**
-→ Đọc **[README.md](../README.md)** phần "Tác dụng và Mục đích"
+→ Đọc **[HUONG_DAN_CHI_TIET.md](./HUONG_DAN_CHI_TIET.md)** phần "Dự Án Triển Khai Về Vấn Đề Gì?" hoặc **[README.md](../README.md)** phần "Tác dụng và Mục đích"
 
 ### **Cách chạy dự án?**
-→ Đọc **[README.md](../README.md)** phần "Cách Chạy Dự Án"
+→ Đọc **[HUONG_DAN_CHI_TIET.md](./HUONG_DAN_CHI_TIET.md)** phần "Hướng Dẫn Chạy Dự Án" hoặc **[README.md](../README.md)** phần "Cách Chạy Dự Án"
+
+### **Sơ đồ kiến trúc dự án?**
+→ Đọc **[HUONG_DAN_CHI_TIET.md](./HUONG_DAN_CHI_TIET.md)** phần "Sơ Đồ Kiến Trúc Dự Án"
+
+### **Cách kết nối database?**
+→ Đọc **[HUONG_DAN_CHI_TIET.md](./HUONG_DAN_CHI_TIET.md)** phần "Hướng Dẫn Kết Nối Database"
 
 ### **YARA Rules là gì? Có cần database không?**
 → Đọc **[ANALYSIS_TYPES.md](./ANALYSIS_TYPES.md)**
