@@ -1,6 +1,6 @@
 # 🚀 Backend - Malware Detector API
 
-Backend API cho hệ thống phát hiện malware sử dụng **FastAPI** (Python).
+Backend API cho hệ thống phát hiện malware sử dụng **FastAPI** (Python) với **Layered Architecture**.
 
 ## 📋 Yêu Cầu
 
@@ -8,63 +8,167 @@ Backend API cho hệ thống phát hiện malware sử dụng **FastAPI** (Pytho
 - MySQL (tùy chọn - để lưu lịch sử phân tích)
 - YARA engine (tự động cài với dependencies)
 
-## 🏗️ Cấu Trúc Dự Án
+## 🏗️ Cấu Trúc Dự Án (Layered Architecture)
 
 ```
 backend/
 │
-├── 📦 app/                          # FastAPI Application
-│   ├── main.py                      # ⭐ Entry point chính
+├── 📦 app/                           # FastAPI Application
+│   ├── main.py                       # ⭐ Entry point chính
 │   │
-│   ├── 🌐 api/                      # API Layer
+│   ├── 🎯 core/                      # Core Layer - Configuration & Infrastructure
+│   │   ├── config.py                # Application settings (Pydantic-based)
+│   │   ├── security.py              # JWT, password hashing, RBAC
+│   │   ├── dependencies.py          # Dependency Injection
+│   │   └── logging.py               # Structured logging & audit
+│   │
+│   ├── 🌐 api/                       # API Layer - Presentation
 │   │   └── v1/
-│   │       └── routes/
+│   │       ├── router.py            # Tổng hợp routers
+│   │       ├── endpoints/           # API endpoints (mới)
+│   │       │   └── analyses.py      # Analysis endpoints với DI
+│   │       └── routes/              # Legacy routes (đang migration)
 │   │           ├── scan.py         # POST /api/scan - Quét file
 │   │           ├── analyses.py     # GET /api/analyses - Lịch sử phân tích
+│   │           ├── batch_scan.py    # POST /api/scan/batch - Batch scan
 │   │           ├── health.py       # GET /api/health - Health check
-│   │           └── websocket.py   # WS /api/ws/{task_id} - Real-time
+│   │           ├── ratings.py       # POST /api/ratings - Rating system
+│   │           ├── search.py       # GET /api/search - Search analyses
+│   │           ├── export.py       # GET /api/export - Export data
+│   │           └── websocket.py    # WS /api/ws/{task_id} - Real-time
 │   │
-│   ├── ⚙️ services/                  # Business Logic Layer
+│   ├── 🏛️ domain/                    # Domain Layer - Business Logic
+│   │   └── analyses/
+│   │       ├── models.py           # Domain models (business entities)
+│   │       ├── schemas.py          # Pydantic schemas (validation)
+│   │       ├── services.py         # Business logic services
+│   │       └── repositories.py     # Repository interfaces (abstractions)
+│   │
+│   ├── 🎬 application/              # Application Layer - Use Cases
+│   │   └── use_cases/
+│   │       ├── get_analysis.py     # Get analysis use case
+│   │       └── get_analyses_list.py # Get analyses list use case
+│   │
+│   ├── 🔧 infrastructure/            # Infrastructure Layer - External Concerns
+│   │   ├── database.py             # Database connection management
+│   │   └── repositories/           # Repository implementations
+│   │       └── analysis_repository.py # Analysis repository implementation
+│   │
+│   ├── 🔗 shared/                   # Shared Utilities
+│   │   ├── exceptions.py           # Custom exceptions
+│   │   ├── utils.py                # Utility functions
+│   │   └── constants.py            # Application constants
+│   │
+│   ├── ⚙️ services/                  # Legacy Services (đang migration)
 │   │   ├── analyzer_service.py      # Orchestrator chính
 │   │   ├── yara_service.py          # YARA scanning
 │   │   ├── hash_service.py          # Hash detection
 │   │   └── static_analyzer_service.py # PE analysis
 │   │
-│   ├── 🗄️ database/                 # Database Layer
+│   ├── 🗄️ database/                 # Legacy Database (đang migration)
 │   │   ├── connection.py            # MySQL connection pool
-│   │   └── analysis_repository.py   # CRUD operations
+│   │   ├── analysis_repository.py   # CRUD operations (legacy)
+│   │   ├── rating_repository.py     # Rating CRUD
+│   │   └── ml_schema.py             # ML tables schema
 │   │
-│   ├── 📋 schemas/                  # Pydantic Models
+│   ├── 📋 schemas/                  # Legacy Schemas (đang migration)
 │   │   └── scan.py                  # Data validation schemas
 │   │
-│   ├── 🎯 core/                     # Core Configuration
-│   │   ├── config.py                # Settings, paths, YARA loading
-│   │   └── dependencies.py          # Shared dependencies
-│   │
-│   └── 📊 models/                    # Database Models
+│   └── 📊 models/                    # Legacy Models (đang migration)
 │       └── analysis.py              # Analysis model
 │
-├── 🔧 src/                           # Core Modules (Reusable)
+├── 🔧 src/                           # Legacy Core Modules (VẪN CẦN THIẾT)
 │   ├── Analysis/
-│   │   └── StaticAnalyzer.py        # PE file analysis
+│   │   └── StaticAnalyzer.py        # PE file analysis (được import trong config)
 │   ├── Database/
 │   │   ├── Driver.py                # MySQL driver
-│   │   └── Malware.json             # Hash database
+│   │   └── Malware.py               # Hash database (được import trong hash_service)
+│   ├── Models/
+│   │   └── Malware.py               # Malware models
 │   └── Utils/
-│       └── Utils.py                 # Utilities (hash, YARA)
+│       └── Utils.py                 # Utilities (được import trong hash_service)
 │
 ├── 🛡️ yara_rules/                   # YARA Rules Database
 │   └── rules/
 │       └── index.yar                # 564+ YARA rules
 │
 ├── 📁 uploads/                       # Upload folder (temporary files)
+├── 📁 logs/                          # Log files (tự động tạo)
 ├── 📝 scripts/                       # Utility scripts
 ├── 🐳 config/                        # Docker configuration
 │   ├── Dockerfile
 │   └── docker-compose.yml
 │
+├── 📚 ARCHITECTURE.md                # Kiến trúc chi tiết
 ├── requirements.txt                  # Python dependencies
 └── venv/                             # Virtual environment (optional)
+```
+
+### 📐 Kiến Trúc Layered
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    API Layer (Presentation)              │
+│  - HTTP endpoints, Request/Response handling             │
+│  - FastAPI routers, Dependencies injection              │
+└──────────────────┬──────────────────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────────────────┐
+│              Application Layer (Use Cases)              │
+│  - Orchestration, Use case implementations              │
+│  - Event handling, Side effects                         │
+└──────────────────┬──────────────────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────────────────┐
+│                Domain Layer (Business Logic)            │
+│  - Domain models, Business rules                        │
+│  - Domain services, Repository interfaces               │
+└──────────────────┬──────────────────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────────────────┐
+│            Infrastructure Layer (External)              │
+│  - Database, Storage, External APIs                     │
+│  - Repository implementations                           │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│                  Core & Shared                          │
+│  - Configuration, Security, Logging                      │
+│  - Utilities, Exceptions, Constants                     │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 🔄 Luồng Xử Lý Request
+
+```
+1. Request đến API Layer
+   ↓
+2. API Layer (endpoints) → gọi Use Cases
+   ↓
+3. Application Layer (use cases) → gọi Domain Services
+   ↓
+4. Domain Layer (services) → gọi Repository Interfaces
+   ↓
+5. Infrastructure Layer (repository implementations) → truy cập Database
+   ↓
+6. Response quay ngược lại qua các layers
+```
+
+**Ví dụ cụ thể:**
+```
+GET /api/analyses/1
+  ↓
+API: get_analysis() endpoint
+  ↓
+Use Case: GetAnalysisUseCase.execute()
+  ↓
+Domain Service: AnalysisService.get_analysis_by_id()
+  ↓
+Repository Interface: IAnalysisRepository.get_by_id()
+  ↓
+Repository Implementation: AnalysisRepository.get_by_id() → MySQL query
+  ↓
+Response: AnalysisResponse → JSON
 ```
 
 ## 🚀 Cách Chạy
@@ -561,10 +665,15 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
 ## 🎯 Tóm Tắt
 
 - **Framework**: FastAPI (Python)
+- **Architecture**: Layered Architecture (Core, Domain, Application, Infrastructure, API)
 - **Server**: Uvicorn (ASGI)
 - **Database**: MySQL (tùy chọn)
 - **Port**: 5000
 - **API Base URL**: http://localhost:5000/api
+
+### 📚 Tài Liệu Kiến Trúc
+
+Xem thêm chi tiết về kiến trúc trong file [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 
 **Chúc bạn sử dụng thành công! 🚀**
 

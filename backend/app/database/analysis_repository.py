@@ -4,9 +4,9 @@ Analysis Repository - CRUD operations cho analyses
 import json
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-import aiomysql
-from app.models.analysis import Analysis, YaraMatch
-from app.database.connection import get_db
+import aiomysql  # type: ignore[import-untyped]
+# Note: aiomysql==0.2.0 is installed via requirements.txt
+# If IDE shows import error, ensure Python interpreter points to venv
 
 
 class AnalysisRepository:

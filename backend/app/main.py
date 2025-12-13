@@ -1,86 +1,160 @@
 """
-Main application entry point
-FastAPI application với kiến trúc chuẩn
+Main Application Entry Point - FastAPI application với Layered Architecture
+Application này sử dụng kiến trúc layered để tách biệt concerns và dễ maintain
+
+Architecture:
+- Core Layer: Configuration, Security, Dependencies, Logging
+- Domain Layer: Business logic, Domain models, Services, Repository interfaces
+- Application Layer: Use cases (orchestration)
+- Infrastructure Layer: Database, Storage, Repository implementations
+- API Layer: HTTP endpoints, Request/Response handling
+- Shared: Utilities, Exceptions, Constants
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from pathlib import Path
-import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Load environment variables từ .env file
 load_dotenv()
 
-# Base directory
-BASE_DIR = Path(__file__).parent.parent.parent
-
+# Import core modules
 from app.core.config import settings
-from app.api.v1 import api_router
-from app.database.connection import init_db
+from app.core.logging import setup_logging, get_logger
 
-# Initialize FastAPI app
+# Setup logging
+logger = setup_logging(settings.LOG_LEVEL, settings.LOG_FILE)
+
+# Import database initialization - Fallback to old connection if infrastructure not available
+try:
+    from app.infrastructure.database import init_database
+except ImportError:
+    # Fallback to old database connection
+    from app.database.connection import init_db as init_database
+
+# Initialize FastAPI app với metadata
 app = FastAPI(
     title=settings.APP_NAME,
     description=settings.APP_DESCRIPTION,
     version=settings.APP_VERSION,
     docs_url=settings.DOCS_URL,
-    redoc_url=settings.REDOC_URL
+    redoc_url=settings.REDOC_URL,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-# Cấu hình CORS để React frontend có thể gọi API
+# Cấu hình CORS - Cho phép React frontend gọi API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # React dev server
-        "http://localhost:5173",  # Vite dev server
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Trusted Host Middleware - Chỉ accept requests từ trusted hosts
+# TODO: Cấu hình allowed_hosts từ environment trong production
+# app.add_middleware(
+#     TrustedHostMiddleware,
+#     allowed_hosts=["localhost", "127.0.0.1", "*.yourdomain.com"]
+# )
+
+
 @app.on_event("startup")
 async def startup_event():
-    """Hiển thị thông tin truy cập khi server khởi động"""
+    """
+    Startup Event - Khởi tạo application khi server start
+    
+    Thực hiện:
+    1. Initialize database
+    2. Load YARA rules
+    3. Initialize Static Analyzer
+    4. Log startup info
+    """
+    logger.info("="*60)
+    logger.info(f"{settings.APP_NAME} v{settings.APP_VERSION} - Starting up...")
+    logger.info("="*60)
+    
     # Initialize database
     try:
-        await init_db()
-        print("[OK] Database initialized")
+        success = await init_database()
+        if success:
+            logger.info("Database initialized successfully")
+        else:
+            logger.warning("Database initialization failed - Analysis history will not be saved")
     except Exception as e:
-        print(f"[WARN] Database initialization failed: {e}")
-        print("[INFO] Analysis history will not be saved")
+        logger.error(f"Database initialization error: {e}")
     
     # Load YARA rules
-    settings.load_yara_rules()
+    try:
+        rules = settings.load_yara_rules()
+        if rules:
+            rule_count = len(list(rules))
+            logger.info(f"YARA rules loaded: {rule_count} rules")
+        else:
+            logger.warning("YARA rules not loaded")
+    except Exception as e:
+        logger.error(f"Error loading YARA rules: {e}")
     
     # Initialize Static Analyzer
-    settings.init_static_analyzer()
+    try:
+        analyzer = settings.init_static_analyzer()
+        if analyzer:
+            logger.info("Static Analyzer initialized successfully")
+        else:
+            logger.warning("Static Analyzer not initialized")
+    except Exception as e:
+        logger.error(f"Error initializing Static Analyzer: {e}")
     
     # Print startup info
-    print("\n" + "="*60)
-    print("[INFO] Malware Detector API da khoi dong!")
-    print("="*60)
-    print("\n[INFO] Backend API da khoi dong!")
-    print("   API Base URL:   http://localhost:5000/api")
-    print("   API Docs:       http://localhost:5000/api/docs")
-    print("   ReDoc:          http://localhost:5000/api/redoc")
-    print("   Health Check:   http://localhost:5000/api/health")
-    print("\n[INFO] CORS enabled for React frontend (localhost:3000, localhost:5173)")
-    print("="*60 + "\n")
+    logger.info("="*60)
+    logger.info("Backend API started successfully!")
+    logger.info(f"   API Base URL:   http://{settings.HOST}:{settings.PORT}{settings.API_V1_STR}")
+    logger.info(f"   API Docs:       http://{settings.HOST}:{settings.PORT}{settings.DOCS_URL}")
+    logger.info(f"   ReDoc:          http://{settings.HOST}:{settings.PORT}{settings.REDOC_URL}")
+    logger.info(f"   Health Check:   http://{settings.HOST}:{settings.PORT}{settings.API_V1_STR}/health")
+    logger.info(f"   CORS Origins:   {', '.join(settings.CORS_ORIGINS)}")
+    logger.info("="*60)
 
-# Include API routes only (không cần web routes nữa vì dùng React)
-app.include_router(api_router, prefix=settings.API_V1_STR)
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """
+    Shutdown Event - Cleanup khi server shutdown
+    
+    Thực hiện:
+    1. Close database connections
+    2. Cleanup resources
+    """
+    logger.info("Shutting down application...")
+    # TODO: Close database pool, cleanup resources
+    logger.info("Application shut down successfully")
+
+
+# Include API routes
+try:
+    from app.api.v1 import api_router
+    app.include_router(api_router, prefix=settings.API_V1_STR)
+except ImportError as e:
+    logger.error(f"Failed to import API router: {e}")
+    logger.warning("API routes not loaded. Check API module imports.")
+
 
 if __name__ == "__main__":
+    """
+    Main entry point - Chạy application với uvicorn
+    
+    Usage:
+        python -m app.main
+        hoặc
+        uvicorn app.main:app --host 0.0.0.0 --port 5000
+    """
     import uvicorn
-    # Chạy server - host="0.0.0.0" cho phép truy cập từ localhost và LAN
-    # Nhưng để truy cập từ browser, phải dùng http://localhost:5000 (KHÔNG dùng http://0.0.0.0:5000)
+    
     uvicorn.run(
         "app.main:app",  # Use string để reload hoạt động
         host=settings.HOST,
         port=settings.PORT,
-        reload=False,  # Set to False khi chạy trực tiếp
-        log_level="info"
+        reload=False,  # Set to True trong development
+        log_level=settings.LOG_LEVEL.lower()
     )
