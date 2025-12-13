@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # Backend - FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: config/Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/logs:/app/logs
+      - ./backend/yara_rules:/app/yara_rules
+    environment:
+      - ENV=production
+      - PYTHONUNBUFFERED=1
+      - DB_USER=${DB_USER:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-123456}
+      - DB_HOST=${DB_HOST:-127.0.0.1}
+      - DB_NAME=${DB_NAME:-malwaredetection}
+      - DB_PORT=${DB_PORT:-3306}
+    restart: always
+    container_name: malware-detector-backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend - React
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:5000/api
+    depends_on:
+      - backend
+    restart: always
+    container_name: malware-detector-frontend
+
