@@ -2,23 +2,23 @@
  * Search API - Search endpoints
  */
 import apiClient from './client'
-import { AnalysisListItemResponse } from '../datahelper/analyses.dataHelper'
+import { GetAnalysesResponse } from '../datahelper/analyses.dataHelper'
 import { ErrorResponse } from '../datahelper/client.dataHelper'
 
 /**
- * Search analyses
+ * Search analyses with pagination
  * @param query - Search query
  * @param limit - Limit
  * @param offset - Offset
- * @returns AnalysisListItemResponse[]
+ * @returns GetAnalysesResponse (items, total, limit, offset)
  */
 export const searchAnalyses = async (
   query: string,
   limit: number = 50,
   offset: number = 0
-): Promise<AnalysisListItemResponse[]> => {
+): Promise<GetAnalysesResponse> => {
   try {
-    const response = await apiClient.get<AnalysisListItemResponse[]>(
+    const response = await apiClient.get<GetAnalysesResponse>(
       `/search/analyses?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`
     )
     return response.data

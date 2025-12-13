@@ -19,18 +19,26 @@ router = APIRouter()
 analysis_repo = AnalysisRepository()
 
 
-@router.get("/analyses", response_model=List[AnalysisResponse])
+@router.get("/analyses")
 async def search_analyses(
     q: str = Query(..., min_length=1, description="Search query for filename, SHA256, or MD5"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0)
 ):
     """
-    Search analyses by filename, SHA256, or MD5
+    Search analyses by filename, SHA256, or MD5 with pagination
     
     - q: Search keyword (searches in filename, SHA256, MD5)
     - limit: Number of results (1-100)
     - offset: Starting position for pagination
+    
+    Returns:
+        {
+            "items": List[AnalysisResponse],
+            "total": int,
+            "limit": int,
+            "offset": int
+        }
     
     Examples:
     - Search by filename: q=test.exe
@@ -43,12 +51,18 @@ async def search_analyses(
         
         query = q.strip()
         
-        # Use database search method
+        # Get results and total count
         results = await analysis_repo.search(query, limit=limit, offset=offset)
+        total = await analysis_repo.count_search(query)
         
         if not results:
             # Return empty list if no results
-            return []
+            return {
+                "items": [],
+                "total": 0,
+                "limit": limit,
+                "offset": offset
+            }
         
         # Convert to response model, handle missing fields
         response_list = []
@@ -94,7 +108,12 @@ async def search_analyses(
                 traceback.print_exc()
                 continue
         
-        return response_list
+        return {
+            "items": response_list,
+            "total": total,
+            "limit": limit,
+            "offset": offset
+        }
         
     except HTTPException:
         raise

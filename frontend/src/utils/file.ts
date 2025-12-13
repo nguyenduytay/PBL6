@@ -22,13 +22,30 @@ export const formatFileSize = (bytes: number, decimals: number = 2): string => {
 }
 
 /**
- * Format file size to GB
+ * Format file size to GB (or appropriate unit if smaller)
  * @param bytes - File size in bytes
  * @param decimals - Number of decimal places (default: 2)
- * @returns Formatted string in GB (e.g., "1.5 GB")
+ * @returns Formatted string in GB (e.g., "1.5 GB") or smaller unit if file is small
  */
 export const formatFileSizeGB = (bytes: number, decimals: number = 2): string => {
-  const gb = bytes / (1024 * 1024 * 1024)
+  if (bytes === 0) return '0 Bytes'
+  
+  const k = 1024
+  const gb = bytes / (k * k * k)
+  
+  // If less than 1 GB, use appropriate smaller unit
+  if (gb < 1) {
+    const mb = bytes / (k * k)
+    if (mb < 1) {
+      const kb = bytes / k
+      if (kb < 1) {
+        return `${bytes} Bytes`
+      }
+      return `${parseFloat(kb.toFixed(decimals))} KB`
+    }
+    return `${parseFloat(mb.toFixed(decimals))} MB`
+  }
+  
   return `${gb.toFixed(decimals)} GB`
 }
 

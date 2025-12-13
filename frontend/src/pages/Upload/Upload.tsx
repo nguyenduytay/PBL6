@@ -124,10 +124,10 @@ const Upload: React.FC = () => {
               {file && (
                 <div className="mt-4 p-4 bg-gray-700 rounded-lg">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-white font-medium">{file.name}</p>
-                      <p className="text-gray-400 text-sm">
-                        {t('upload.fileSize')}: {formatFileSize(file.size)}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-medium truncate">{file.name}</p>
+                      <p className="text-gray-400 text-sm mt-1">
+                        {t('upload.fileSize')}: <span className="text-gray-300 font-medium">{formatFileSize(file.size || 0)}</span>
                       </p>
                     </div>
                     <button

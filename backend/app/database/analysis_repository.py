@@ -247,6 +247,41 @@ class AnalysisRepository:
             pool.release(conn)
     
     @staticmethod
+    async def count_search(query: str) -> int:
+        """
+        Count total search results by filename, SHA256, or MD5
+        
+        Args:
+            query: Search keyword
+            
+        Returns:
+            Total count of matching analyses
+        """
+        from app.database.connection import _db
+        
+        try:
+            pool = await _db.connect()
+            conn = await pool.acquire()
+        except Exception as e:
+            print(f"[WARN] Cannot get database connection: {e}")
+            return 0
+        
+        try:
+            async with conn.cursor() as cursor:
+                search_pattern = f"%{query}%"
+                await cursor.execute("""
+                    SELECT COUNT(*) FROM analyses 
+                    WHERE filename LIKE %s 
+                       OR sha256 LIKE %s 
+                       OR md5 LIKE %s
+                """, (search_pattern, search_pattern, search_pattern))
+                
+                total = (await cursor.fetchone())[0]
+                return total
+        finally:
+            pool.release(conn)
+    
+    @staticmethod
     async def count_all() -> int:
         """Đếm tổng số analyses"""
         from app.database.connection import _db

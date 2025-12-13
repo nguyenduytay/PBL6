@@ -21,15 +21,23 @@ const BatchScan: React.FC = () => {
     const files = e.target.files
     if (files && files.length > 0) {
       const filesArray = Array.from(files)
+      
+      // Calculate total size manually to ensure it's correct
+      const calculatedTotalSize = filesArray.reduce((sum, file) => {
+        return sum + (file.size || 0)
+      }, 0)
+      
       const validation = validateFilesTotalSize(filesArray)
       
-      setTotalSize(validation.totalSize || 0)
+      // Use calculated total size instead of validation.totalSize
+      setTotalSize(calculatedTotalSize)
       
       if (!validation.isValid) {
-        const sizeGB = formatFileSizeGB(validation.totalSize || 0)
+        const sizeGB = formatFileSizeGB(calculatedTotalSize)
         setSizeError(t('batchScan.totalSizeExceeds', { sizeGB, maxGB: MAX_UPLOAD_SIZE_GB }))
         setSelectedFolder(null)
         setSelectedFolderName('')
+        setTotalSize(0)
         return
       } else {
         setSizeError('')
@@ -38,6 +46,12 @@ const BatchScan: React.FC = () => {
       setSelectedFolder(files)
       const folderName = getFolderNameFromFile(files[0])
       setSelectedFolderName(folderName)
+    } else {
+      // Reset when no files selected
+      setTotalSize(0)
+      setSelectedFolder(null)
+      setSelectedFolderName('')
+      setSizeError('')
     }
   }
 
@@ -125,7 +139,7 @@ const BatchScan: React.FC = () => {
                     {t('batchScan.selected')}: {selectedFolderName} ({selectedFolder?.length || 0} {t('batchScan.files')})
                   </p>
                   <p className="text-sm text-gray-400">
-                    {t('batchScan.totalSize')}: {(totalSize / 1024 / 1024 / 1024).toFixed(2)} GB / {MAX_UPLOAD_SIZE_GB} GB
+                    {t('batchScan.totalSize')}: {formatFileSizeGB(totalSize)} / {MAX_UPLOAD_SIZE_GB} GB
                   </p>
                 </div>
               )}

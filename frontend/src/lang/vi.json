@@ -235,7 +235,8 @@
     "sha256Hash": "Hash SHA256 (đầy đủ hoặc một phần)",
     "md5Hash": "Hash MD5 (đầy đủ hoặc một phần)",
     "resultsCount": "Kết quả tìm kiếm ({{count}})",
-    "createdAt": "Tạo lúc"
+    "createdAt": "Tạo lúc",
+    "loadingMore": "Đang tải thêm kết quả..."
   }
 }
 

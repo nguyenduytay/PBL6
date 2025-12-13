@@ -236,7 +236,8 @@
     "sha256Hash": "SHA256 hash (full or partial)",
     "md5Hash": "MD5 hash (full or partial)",
     "resultsCount": "Search Results ({{count}})",
-    "createdAt": "Created at"
+    "createdAt": "Created at",
+    "loadingMore": "Loading more results..."
   }
 }
 

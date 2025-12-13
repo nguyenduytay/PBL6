@@ -8,22 +8,15 @@ interface SearchResultsProps {
   results: AnalysisListItemResponse[]
   query: string
   loading: boolean
+  total?: number
 }
 
-const SearchResults: React.FC<SearchResultsProps> = ({ results, query, loading }) => {
+const SearchResults: React.FC<SearchResultsProps> = ({ results, query, total }) => {
   const { t } = useTranslation()
-
-  if (loading) {
-    return (
-      <Card>
-        <div className="text-center text-gray-400 py-8">{t('search.searching')}</div>
-      </Card>
-    )
-  }
 
   if (results.length > 0) {
     return (
-      <Card title={t('search.resultsCount', { count: results.length })}>
+      <Card title={t('search.resultsCount', { count: total || results.length })}>
         <div className="space-y-2">
           {results.map((analysis) => (
             <Link
