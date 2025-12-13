@@ -42,6 +42,10 @@ class Settings:
     UPLOAD_FOLDER: Path = UPLOAD_FOLDER
     YARA_RULES_PATH: Path = YARA_RULES_PATH
     
+    # Upload limits
+    MAX_UPLOAD_SIZE_GB: int = 2  # Maximum upload size in GB
+    MAX_UPLOAD_SIZE_BYTES: int = MAX_UPLOAD_SIZE_GB * 1024 * 1024 * 1024  # Convert to bytes
+    
     @classmethod
     def load_yara_rules(cls) -> Optional[yara.Rules]:
         """Load YARA rules từ file"""

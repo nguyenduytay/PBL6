@@ -148,8 +148,31 @@ async def init_db():
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """)
                 
+                # Tạo bảng ratings
+                await cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS ratings (
+                        id INT PRIMARY KEY AUTO_INCREMENT,
+                        analysis_id INT NOT NULL,
+                        rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+                        comment TEXT,
+                        reviewer_name VARCHAR(100),
+                        tags JSON,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME NULL,
+                        FOREIGN KEY (analysis_id) REFERENCES analyses(id) ON DELETE CASCADE,
+                        INDEX idx_analysis_id (analysis_id),
+                        INDEX idx_rating (rating),
+                        INDEX idx_created_at (created_at)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """)
+                
                 await conn.commit()
                 print("[OK] Database tables initialized")
+                
+                # Tạo ML tables
+                from app.database.ml_schema import create_ml_tables
+                await create_ml_tables()
+                
                 return True
     except Exception as e:
         print(f"[WARN] Database initialization error: {e}")

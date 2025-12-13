@@ -11,7 +11,8 @@ export * from './analyses.dataHelper'
 export * from './scan.dataHelper'
 export * from './health.dataHelper'
 export * from './client.dataHelper'
+export * from './batchScan.dataHelper'
+export * from './ratings.dataHelper'
 
 // Common Types
 export * from './common'
-

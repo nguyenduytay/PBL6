@@ -1,9 +1,12 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useScan } from '../hooks'
-import { Card, Button, Badge } from '../components/UI'
+import { useScan } from '../../hooks'
+import { Card, Button, Badge, PageHeader } from '../../components/UI'
+import { useTranslation } from '../../hooks/useTranslation'
+import { formatFileSize } from '../../utils'
 
 const Upload: React.FC = () => {
+  const { t } = useTranslation()
   const [file, setFile] = useState<File | null>(null)
   const [dragActive, setDragActive] = useState<boolean>(false)
   const navigate = useNavigate()
@@ -64,16 +67,14 @@ const Upload: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Submit File</h1>
-        <p className="text-gray-400">Tải lên file để phân tích malware</p>
-      </div>
+      <PageHeader
+        translationKey={{ title: 'upload.title', subtitle: 'upload.subtitle' }}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Upload Form */}
         <div className="lg:col-span-2">
-          <Card title="Submit URLs/hashes" subtitle="Upload file để phân tích">
+          <Card title={t('upload.cardTitle')} subtitle={t('upload.cardSubtitle')}>
             <form onSubmit={handleSubmit}>
               {/* Drag & Drop Area */}
               <div
@@ -112,10 +113,10 @@ const Upload: React.FC = () => {
                     />
                   </svg>
                   <p className="text-white font-medium mb-2">
-                    Drag your file here or click to select
+                    {t('upload.dragDrop')}
                   </p>
                   <p className="text-gray-400 text-sm">
-                    Supports: EXE, DLL, PDF, DOC, and more
+                    {t('upload.supportedFormats')}
                   </p>
                 </label>
               </div>
@@ -126,7 +127,7 @@ const Upload: React.FC = () => {
                     <div>
                       <p className="text-white font-medium">{file.name}</p>
                       <p className="text-gray-400 text-sm">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                        {t('upload.fileSize')}: {formatFileSize(file.size)}
                       </p>
                     </div>
                     <button
@@ -164,10 +165,10 @@ const Upload: React.FC = () => {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Đang phân tích...
+                      {t('upload.analyzing')}
                     </>
                   ) : (
-                    'Submit'
+                    t('common.submit')
                   )}
                 </Button>
               </div>
@@ -175,31 +176,31 @@ const Upload: React.FC = () => {
 
             {result && (
               <div className="mt-6 p-4 bg-gray-700 rounded-lg border border-gray-600">
-                <h3 className="font-semibold text-white mb-4">Kết quả phân tích:</h3>
+                <h3 className="font-semibold text-white mb-4">{t('upload.analysisResult')}:</h3>
                 <div className="space-y-3">
                   <div>
-                    <span className="text-gray-400 text-sm">File:</span>
+                    <span className="text-gray-400 text-sm">{t('upload.file')}:</span>
                     <p className="text-white font-medium">{result.filename}</p>
                   </div>
                   <div>
-                    <span className="text-gray-400 text-sm">SHA256:</span>
+                    <span className="text-gray-400 text-sm">{t('analysisDetail.sha256')}:</span>
                     <p className="text-gray-300 text-xs font-mono break-all mt-1">
                       {result.sha256}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-gray-400 text-sm">Status:</span>
+                    <span className="text-gray-400 text-sm">{t('upload.status')}:</span>
                     <Badge variant={result.malware_detected ? 'danger' : 'success'}>
-                      {result.malware_detected ? '⚠️ Malware Detected' : '✅ Clean'}
+                      {result.malware_detected ? t('upload.malwareDetected') : t('upload.clean')}
                     </Badge>
                   </div>
                   <div>
-                    <span className="text-gray-400 text-sm">Analysis Time:</span>
+                    <span className="text-gray-400 text-sm">{t('upload.analysisTime')}:</span>
                     <p className="text-white">{result.analysis_time?.toFixed(2)}s</p>
                   </div>
                   {result.id && (
                     <p className="text-sm text-green-400 mt-2">
-                      Đang chuyển đến trang chi tiết...
+                      {t('upload.redirecting')}
                     </p>
                   )}
                 </div>
@@ -210,11 +211,11 @@ const Upload: React.FC = () => {
 
         {/* System Info Sidebar */}
         <div className="space-y-6">
-          <Card title="System Info" subtitle="Thông tin hệ thống">
+          <Card title={t('common.systemInfo')} subtitle={t('upload.systemInformation')}>
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-gray-400 text-sm">Free disk space</span>
+                  <span className="text-gray-400 text-sm">{t('upload.freeDiskSpace')}</span>
                   <span className="text-white text-sm">75%</span>
                 </div>
                 <div className="w-full bg-gray-700 rounded-full h-2">
@@ -223,7 +224,7 @@ const Upload: React.FC = () => {
               </div>
               <div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-gray-400 text-sm">CPU Load</span>
+                  <span className="text-gray-400 text-sm">{t('upload.cpuLoad')}</span>
                   <span className="text-white text-sm">45%</span>
                 </div>
                 <div className="w-full bg-gray-700 rounded-full h-2">
@@ -232,7 +233,7 @@ const Upload: React.FC = () => {
               </div>
               <div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-gray-400 text-sm">Memory usage</span>
+                  <span className="text-gray-400 text-sm">{t('upload.memoryUsage')}</span>
                   <span className="text-white text-sm">62%</span>
                 </div>
                 <div className="w-full bg-gray-700 rounded-full h-2">

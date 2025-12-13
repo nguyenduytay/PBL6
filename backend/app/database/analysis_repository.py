@@ -195,6 +195,78 @@ class AnalysisRepository:
             pool.release(conn)
     
     @staticmethod
+    async def search(query: str, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+        """
+        Search analyses by filename, SHA256, or MD5
+        
+        Args:
+            query: Search keyword
+            limit: Maximum number of results
+            offset: Offset for pagination
+            
+        Returns:
+            List of matching analyses
+        """
+        from app.database.connection import _db
+        
+        try:
+            pool = await _db.connect()
+            conn = await pool.acquire()
+        except Exception as e:
+            print(f"[WARN] Cannot get database connection: {e}")
+            return []
+        
+        try:
+            async with conn.cursor(aiomysql.DictCursor) as cursor:
+                # Search in filename, SHA256, and MD5 using LIKE
+                search_pattern = f"%{query}%"
+                await cursor.execute("""
+                    SELECT * FROM analyses 
+                    WHERE filename LIKE %s 
+                       OR sha256 LIKE %s 
+                       OR md5 LIKE %s
+                    ORDER BY created_at DESC 
+                    LIMIT %s OFFSET %s
+                """, (search_pattern, search_pattern, search_pattern, limit, offset))
+                
+                rows = await cursor.fetchall()
+                
+                # Parse JSON fields
+                for row in rows:
+                    if row.get('yara_matches'):
+                        row['yara_matches'] = json.loads(row['yara_matches'])
+                    if row.get('pe_info'):
+                        row['pe_info'] = json.loads(row['pe_info'])
+                    if row.get('suspicious_strings'):
+                        row['suspicious_strings'] = json.loads(row['suspicious_strings'])
+                    if row.get('capabilities'):
+                        row['capabilities'] = json.loads(row['capabilities'])
+                
+                return rows
+        finally:
+            pool.release(conn)
+    
+    @staticmethod
+    async def count_all() -> int:
+        """Đếm tổng số analyses"""
+        from app.database.connection import _db
+        
+        try:
+            pool = await _db.connect()
+            conn = await pool.acquire()
+        except Exception as e:
+            print(f"[WARN] Cannot get database connection: {e}")
+            return 0
+        
+        try:
+            async with conn.cursor() as cursor:
+                await cursor.execute("SELECT COUNT(*) as total FROM analyses")
+                result = await cursor.fetchone()
+                return result[0] if result else 0
+        finally:
+            pool.release(conn)
+    
+    @staticmethod
     async def get_statistics() -> Dict[str, Any]:
         """Lấy thống kê"""
         from app.database.connection import _db
@@ -238,6 +310,34 @@ class AnalysisRepository:
                     'clean_files': clean_count,
                     'recent_24h': recent_count
                 }
+        finally:
+            pool.release(conn)
+    
+    @staticmethod
+    async def delete(analysis_id: int) -> bool:
+        """Xóa analysis và các dữ liệu liên quan"""
+        from app.database.connection import _db
+        
+        try:
+            pool = await _db.connect()
+            conn = await pool.acquire()
+        except Exception as e:
+            print(f"[WARN] Cannot get database connection: {e}")
+            return False
+        
+        try:
+            async with conn.cursor() as cursor:
+                # Xóa YARA matches trước (foreign key constraint)
+                await cursor.execute("DELETE FROM yara_matches WHERE analysis_id = %s", (analysis_id,))
+                
+                # Xóa ratings liên quan
+                await cursor.execute("DELETE FROM ratings WHERE analysis_id = %s", (analysis_id,))
+                
+                # Xóa analysis
+                await cursor.execute("DELETE FROM analyses WHERE id = %s", (analysis_id,))
+                await conn.commit()
+                
+                return cursor.rowcount > 0
         finally:
             pool.release(conn)
 

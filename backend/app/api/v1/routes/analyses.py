@@ -17,7 +17,7 @@ from app.models.analysis import AnalysisResponse
 router = APIRouter()
 analysis_repo = AnalysisRepository()
 
-@router.get("", response_model=List[AnalysisResponse])
+@router.get("")
 async def get_analyses(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0)
@@ -27,10 +27,25 @@ async def get_analyses(
     
     - limit: Số lượng kết quả (1-1000)
     - offset: Vị trí bắt đầu
+    
+    Returns:
+        {
+            "items": List[AnalysisResponse],
+            "total": int,
+            "limit": int,
+            "offset": int
+        }
     """
     try:
         analyses = await analysis_repo.get_all(limit=limit, offset=offset)
-        return analyses
+        total = await analysis_repo.count_all()
+        
+        return {
+            "items": analyses,
+            "total": total,
+            "limit": limit,
+            "offset": offset
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching analyses: {str(e)}")
 
@@ -68,4 +83,24 @@ async def get_statistics():
         return stats
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching statistics: {str(e)}")
+
+@router.delete("/{analysis_id}")
+async def delete_analysis(analysis_id: int):
+    """Xóa một analysis"""
+    try:
+        # Kiểm tra analysis có tồn tại không
+        analysis = await analysis_repo.get_by_id(analysis_id)
+        if not analysis:
+            raise HTTPException(status_code=404, detail="Analysis not found")
+        
+        # Xóa analysis
+        deleted = await analysis_repo.delete(analysis_id)
+        if not deleted:
+            raise HTTPException(status_code=500, detail="Failed to delete analysis")
+        
+        return {"message": "Analysis deleted successfully", "id": analysis_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting analysis: {str(e)}")
 

@@ -3,15 +3,14 @@
  */
 import axios, { AxiosInstance, AxiosError } from 'axios'
 import { ErrorResponse } from '../datahelper/client.dataHelper'
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+import { API_BASE_URL, API_TIMEOUT } from '../constants'
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000, // 30 seconds
+  timeout: API_TIMEOUT,
 })
 
 // Request interceptor

@@ -4,9 +4,9 @@
 import apiClient from './client'
 import {
   AnalysisDetailResponse,
-  AnalysisListItemResponse,
   AnalysisStatsResponse,
   GetAnalysesRequest,
+  GetAnalysesResponse,
 } from '../datahelper/analyses.dataHelper'
 import { ErrorResponse } from '../datahelper/client.dataHelper'
 
@@ -14,15 +14,15 @@ import { ErrorResponse } from '../datahelper/client.dataHelper'
  * Lấy danh sách analyses với pagination
  * @param limit - Số lượng kết quả (mặc định: 100)
  * @param offset - Vị trí bắt đầu (mặc định: 0)
- * @returns Danh sách analyses
+ * @returns Response với items, total, limit, offset
  */
 export const getAnalyses = async (
   limit: number = 100,
   offset: number = 0
-): Promise<AnalysisListItemResponse[]> => {
+): Promise<GetAnalysesResponse> => {
   try {
     const params: GetAnalysesRequest = { limit, offset }
-    const response = await apiClient.get<AnalysisListItemResponse[]>('/analyses', {
+    const response = await apiClient.get<GetAnalysesResponse>('/analyses', {
       params,
     })
     return response.data
@@ -66,6 +66,20 @@ export const getAnalysisBySha256 = async (sha256: string): Promise<AnalysisDetai
 export const getAnalysisStats = async (): Promise<AnalysisStatsResponse> => {
   try {
     const response = await apiClient.get<AnalysisStatsResponse>('/analyses/stats/summary')
+    return response.data
+  } catch (error) {
+    throw error as ErrorResponse
+  }
+}
+
+/**
+ * Xóa analysis theo ID
+ * @param id - ID của analysis cần xóa
+ * @returns Thông báo xóa thành công
+ */
+export const deleteAnalysis = async (id: number): Promise<{ message: string; id: number }> => {
+  try {
+    const response = await apiClient.delete<{ message: string; id: number }>(`/analyses/${id}`)
     return response.data
   } catch (error) {
     throw error as ErrorResponse

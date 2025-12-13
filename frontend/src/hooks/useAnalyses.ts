@@ -2,7 +2,7 @@
  * useAnalyses Hook - Hook để xử lý analyses data
  */
 import { useState, useEffect } from 'react'
-import { getAnalyses, getAnalysisById, getAnalysisStats } from '../api/analyses'
+import { getAnalyses, getAnalysisById, getAnalysisStats, deleteAnalysis } from '../api/analyses'
 import {
   AnalysisDetailResponse,
   AnalysisListItemResponse,
@@ -12,13 +12,16 @@ import { ErrorResponse } from '../datahelper/client.dataHelper'
 
 interface UseAnalysesReturn {
   analyses: AnalysisListItemResponse[]
+  total: number
   loading: boolean
   error: ErrorResponse | null
   refetch: () => Promise<void>
+  deleteAnalysisById: (id: number) => Promise<void>
 }
 
 export const useAnalyses = (limit: number = 100, offset: number = 0): UseAnalysesReturn => {
   const [analyses, setAnalyses] = useState<AnalysisListItemResponse[]>([])
+  const [total, setTotal] = useState<number>(0)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<ErrorResponse | null>(null)
 
@@ -28,7 +31,8 @@ export const useAnalyses = (limit: number = 100, offset: number = 0): UseAnalyse
 
     try {
       const data = await getAnalyses(limit, offset)
-      setAnalyses(Array.isArray(data) ? data : [])
+      setAnalyses(Array.isArray(data.items) ? data.items : [])
+      setTotal(data.total || 0)
     } catch (err) {
       setError(err as ErrorResponse)
     } finally {
@@ -38,13 +42,26 @@ export const useAnalyses = (limit: number = 100, offset: number = 0): UseAnalyse
 
   useEffect(() => {
     fetchAnalyses()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [limit, offset])
+
+  const deleteAnalysisById = async (id: number): Promise<void> => {
+    try {
+      await deleteAnalysis(id)
+      // Refresh danh sách sau khi xóa
+      await fetchAnalyses()
+    } catch (err) {
+      throw err as ErrorResponse
+    }
+  }
 
   return {
     analyses,
+    total,
     loading,
     error,
     refetch: fetchAnalyses,
+    deleteAnalysisById,
   }
 }
 

@@ -30,9 +30,11 @@ class AnalysisResponse(AnalysisBase):
     """Model response cho API"""
     id: int
     created_at: datetime
+    upload_time: Optional[datetime] = None
     
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 @dataclass

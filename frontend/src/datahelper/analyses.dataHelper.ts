@@ -1,59 +1,10 @@
 /**
- * Analyses DataHelper - Types cho Analyses API
- * Tương ứng với api/analyses.ts
+ * Analyses Data Helper - Type definitions for Analyses API
  */
-
-import { YaraMatch, PEInfo } from './common'
+import { YaraMatch } from './common'
 
 /**
- * Request Types cho Analyses API
- */
-export interface GetAnalysesRequest {
-  limit?: number
-  offset?: number
-}
-
-export interface GetAnalysisByIdRequest {
-  id: number
-}
-
-export interface GetAnalysisBySha256Request {
-  sha256: string
-}
-
-export interface AnalysisFilterRequest {
-  malware_detected?: boolean
-  start_date?: string
-  end_date?: string
-  limit?: number
-  offset?: number
-}
-
-/**
- * Response Types cho Analyses API
- */
-
-/**
- * Analysis detail response (full) - GET /analyses/:id
- */
-export interface AnalysisDetailResponse {
-  id: number
-  filename: string
-  sha256: string | null
-  md5: string | null
-  file_size: number | null
-  upload_time: string | null
-  analysis_time: number
-  malware_detected: boolean
-  yara_matches: YaraMatch[] | null
-  pe_info: PEInfo | null
-  suspicious_strings: string[] | null
-  capabilities: Record<string, any> | null
-  created_at: string
-}
-
-/**
- * Analysis list item response (summary) - GET /analyses
+ * Analysis List Item Response
  */
 export interface AnalysisListItemResponse {
   id: number
@@ -61,14 +12,43 @@ export interface AnalysisListItemResponse {
   sha256: string | null
   md5: string | null
   file_size: number | null
-  upload_time: string | null
-  analysis_time: number
+  analysis_time: number | null
   malware_detected: boolean
   created_at: string
+  upload_time: string | null
+  yara_matches: YaraMatch[]
+  suspicious_strings: string[]
+  capabilities: any[]
+  pe_info: any | null
 }
 
 /**
- * Analysis stats response - GET /analyses/stats/summary
+ * Analysis Detail Response
+ */
+export interface AnalysisDetailResponse extends AnalysisListItemResponse {
+  // Additional fields for detail view if needed
+}
+
+/**
+ * Get Analyses Request
+ */
+export interface GetAnalysesRequest {
+  limit?: number
+  offset?: number
+}
+
+/**
+ * Get Analyses Response with Pagination
+ */
+export interface GetAnalysesResponse {
+  items: AnalysisListItemResponse[]
+  total: number
+  limit: number
+  offset: number
+}
+
+/**
+ * Analysis Stats Response
  */
 export interface AnalysisStatsResponse {
   total_analyses: number
@@ -76,4 +56,3 @@ export interface AnalysisStatsResponse {
   clean_files: number
   recent_24h: number
 }
-
