@@ -175,12 +175,15 @@ chmod 755 uploads logs
   sudo kill -9 <PID>
   ```
 
-### 4. Lỗi "Module not found" trong container
+### 4. Lỗi "Module not found" hoặc "pg_config not found" khi build
 
-**Nguyên nhân**: Requirements.txt không được copy đúng.
+**Nguyên nhân**: 
+- Requirements.txt không được copy đúng
+- Hoặc package cần system dependencies (như psycopg2)
 
 **Giải pháp**:
 - Kiểm tra Dockerfile có copy `requirements.txt` đúng không
+- Nếu gặp lỗi `psycopg2`: Đã được thay bằng `psycopg2-binary` trong requirements.txt
 - Rebuild image: `docker compose -f config/docker-compose.yml build --no-cache backend`
 
 ### 5. Lỗi "YARA rules not found"
@@ -273,8 +276,7 @@ Tất cả files Docker config nằm trong `backend/config/`:
 backend/config/
 ├── docker-compose.yml    # Docker Compose configuration (MySQL + Backend)
 ├── Dockerfile            # Backend Docker image definition
-├── DOCKER_SETUP.md       # File hướng dẫn này
-└── requirements_fix.txt  # Optional: Fixed requirements (nếu cần)
+└── DOCKER_SETUP.md       # File hướng dẫn này
 ```
 
 ## 📝 Notes

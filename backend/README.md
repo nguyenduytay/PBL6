@@ -98,8 +98,7 @@ backend/
 ├── 🐳 config/                        # Docker configuration
 │   ├── docker-compose.yml           # Docker Compose (MySQL + Backend)
 │   ├── Dockerfile                    # Backend Docker image
-│   ├── DOCKER_SETUP.md               # Docker setup guide
-│   └── requirements_fix.txt         # Optional: Fixed requirements
+│   └── DOCKER_SETUP.md               # Docker setup guide
 │
 ├── 📚 ARCHITECTURE.md                # Kiến trúc chi tiết
 ├── requirements.txt                  # Python dependencies

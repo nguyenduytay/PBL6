@@ -16,6 +16,8 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev \
     pkg-config \
     yara \
+    # PostgreSQL client libraries (cho psycopg2-binary nếu cần)
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Cập nhật pip, setuptools, wheel
