@@ -1,24 +1,72 @@
 version: '3.8'
 
 services:
-  malware-detector:
+  mysql:
+    image: mysql:8.0
+    container_name: malware-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-123456}
+      MYSQL_DATABASE: ${DB_NAME:-malwaredetection}
+      MYSQL_USER: ${DB_USER:-sa}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-123456}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-123456}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - malware-network
+
+  backend:
     build:
       context: ..
       dockerfile: config/Dockerfile
-    ports:
-      - "5000:5000"
-    volumes:
-      - ../uploads:/app/uploads
-      - ../logs:/app/logs
-      - ../yara_rules:/app/yara_rules  # Mount YARA rules
-    environment:
-      - ENV=production
-      - PYTHONUNBUFFERED=1
+    container_name: malware-backend
     restart: always
-    container_name: pbl6-malware-detector
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+    environment:
+      ENV: ${ENV:-production}
+      PYTHONUNBUFFERED: 1
+      DB_USER: ${DB_USER:-sa}
+      DB_PASSWORD: ${DB_PASSWORD:-123456}
+      DB_HOST: mysql
+      DB_NAME: ${DB_NAME:-malwaredetection}
+      DB_PORT: 3306
+      # CORS Configuration - Cho phép frontend kết nối
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173}
+    volumes:
+      # Mount uploads folder để persist uploaded files
+      - ../uploads:/app/uploads
+      # Mount logs folder để persist logs
+      - ../logs:/app/logs
+      # Mount YARA rules để có thể update rules mà không cần rebuild
+      - ../yara_rules:/app/yara_rules
+      # Mount malware database JSON file
+      - ../src/Database/Malware.json:/app/src/Database/Malware.json
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - malware-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/api/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  malware-network:
+    driver: bridge

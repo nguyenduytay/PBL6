@@ -96,8 +96,10 @@ backend/
 ├── 📁 logs/                          # Log files (tự động tạo)
 ├── 📝 scripts/                       # Utility scripts
 ├── 🐳 config/                        # Docker configuration
-│   ├── Dockerfile
-│   └── docker-compose.yml
+│   ├── docker-compose.yml           # Docker Compose (MySQL + Backend)
+│   ├── Dockerfile                    # Backend Docker image
+│   ├── DOCKER_SETUP.md               # Docker setup guide
+│   └── requirements_fix.txt         # Optional: Fixed requirements
 │
 ├── 📚 ARCHITECTURE.md                # Kiến trúc chi tiết
 ├── requirements.txt                  # Python dependencies
@@ -237,9 +239,30 @@ Mở trình duyệt và truy cập:
 
 ### Phương Án 2: Docker (Production)
 
+Xem hướng dẫn chi tiết trong [`config/DOCKER_SETUP.md`](config/DOCKER_SETUP.md)
+
+**Quick Start**:
+
 ```bash
-cd backend/config
-docker-compose up -d
+cd backend
+docker compose -f config/docker-compose.yml up -d --build
+```
+
+Hoặc tạo symlink để dùng ngắn gọn:
+
+```bash
+cd backend
+ln -s config/docker-compose.yml docker-compose.yml
+docker compose up -d --build
+```
+
+**Kiểm tra**:
+```bash
+# Xem logs
+docker compose -f config/docker-compose.yml logs -f
+
+# Health check
+curl http://localhost:5000/api/health
 ```
 
 ---

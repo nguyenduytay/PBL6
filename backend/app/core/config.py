@@ -69,7 +69,11 @@ class Settings:
     MAX_UPLOAD_SIZE_BYTES: int = MAX_UPLOAD_SIZE_GB * 1024 * 1024 * 1024
     
     # CORS Configuration
-    CORS_ORIGINS: list = [
+    # Load từ environment variable hoặc dùng default
+    CORS_ORIGINS: list = os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173"
+    ).split(",") if os.getenv("CORS_ORIGINS") else [
         "http://localhost:3000",
         "http://localhost:5173",
         "http://127.0.0.1:3000",

@@ -22,7 +22,8 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --upgrade pip setuptools wheel
 
 # Sao chép requirements.txt trước để tận dụng cache
-COPY config/requirements.txt .
+# Copy từ root của backend (context là .)
+COPY requirements.txt .
 
 # Cài đặt các thư viện Python
 RUN pip install --no-cache-dir -r requirements.txt
