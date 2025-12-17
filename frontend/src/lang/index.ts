@@ -35,8 +35,8 @@ export default i18n
 
 // Export language list
 export const languages = [
-  { code: 'en', name: 'English' },
-  { code: 'vi', name: 'Tiếng Việt' },
+  { code: 'en', name: 'English', image: '/images/en.png' },
+  { code: 'vi', name: 'Tiếng Việt', image: '/images/vi.png' },
 ]
 
 // Helper function to change language

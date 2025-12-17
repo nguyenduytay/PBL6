@@ -65,9 +65,8 @@ const Sidebar: React.FC = () => {
 
   return (
     <aside
-      className={`bg-gray-800 text-white transition-all duration-300 flex flex-col ${
-        isCollapsed ? 'w-16' : 'w-64'
-      } min-h-screen border-r border-gray-700`}
+      className={`bg-gray-800 text-white transition-all duration-300 flex flex-col ${isCollapsed ? 'w-16' : 'w-64'
+        } min-h-screen border-r border-gray-700`}
     >
       {/* Collapse Toggle */}
       <div className="flex justify-end p-4 border-b border-gray-700">
@@ -93,11 +92,10 @@ const Sidebar: React.FC = () => {
           <Link
             key={item.path}
             to={item.path}
-            className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-              isActive(item.path)
-                ? 'bg-green-600 text-white'
-                : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-            }`}
+            className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${isActive(item.path)
+              ? 'bg-green-600 text-white'
+              : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+              }`}
             title={isCollapsed ? item.label : ''}
           >
             <span className="flex-shrink-0">{item.icon}</span>
