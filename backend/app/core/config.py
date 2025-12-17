@@ -36,6 +36,8 @@ class Settings:
     )
     
     # Server Configuration
+    # Default: 0.0.0.0 (cho Docker) - có thể override bằng env var HOST
+    # Trên Windows với venv local, set HOST=127.0.0.1 trong .env hoặc environment
     HOST: str = os.getenv("HOST", "0.0.0.0")
     PORT: int = int(os.getenv("PORT", "5000"))
     
@@ -70,15 +72,12 @@ class Settings:
     
     # CORS Configuration
     # Load từ environment variable hoặc dùng default
-    CORS_ORIGINS: list = os.getenv(
+    # Strip whitespace từ mỗi origin để tránh lỗi CORS
+    _cors_origins_str = os.getenv(
         "CORS_ORIGINS",
         "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173"
-    ).split(",") if os.getenv("CORS_ORIGINS") else [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173"
-    ]
+    )
+    CORS_ORIGINS: list = [origin.strip() for origin in _cors_origins_str.split(",") if origin.strip()]
     
     # Logging Configuration
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
