@@ -1,569 +1,448 @@
 # 🛡️ Malware Detector Web Application
 
-Ứng dụng web phát hiện mã độc chuyên nghiệp sử dụng YARA rules và hash-based detection.
-
-## 🎯 Tác dụng và Mục đích của Dự án
-
-Dự án này là một **hệ thống phát hiện mã độc (malware detection)** toàn diện với các tính năng:
-
-### ✅ Chức năng chính:
-
-1. **Phát hiện Malware tự động**
-
-   - Quét file đơn lẻ hoặc toàn bộ folder
-   - Phát hiện 564+ loại malware khác nhau qua YARA rules
-   - So sánh hash với database malware (SHA256, MD5)
-
-2. **Phân tích tĩnh (Static Analysis)**
-
-   - Phân tích cấu trúc file PE (Windows executables)
-   - Trích xuất strings đáng ngờ
-   - Phát hiện packers, obfuscators
-   - Tích hợp Capa framework (nếu có)
-
-3. **Giao diện Web thân thiện**
-
-   - Upload file/folder qua web UI
-   - Xem kết quả phân tích chi tiết
-   - Export báo cáo phân tích
-
-4. **API cho tích hợp**
-   - RESTful API đầy đủ
-   - Swagger/OpenAPI documentation tự động
-   - WebSocket cho real-time updates (tương lai)
-
-### 🎯 Mục đích sử dụng:
-
-- **Bảo mật hệ thống**: Quét file trước khi chạy
-- **Phân tích malware**: Nghiên cứu và phân tích mã độc
-- **Tự động hóa**: Tích hợp vào hệ thống CI/CD
-- **Giáo dục**: Học về malware detection và reverse engineering
-
-### 📊 Ứng dụng thực tế:
-
-- ✅ Quét file download trước khi mở
-- ✅ Kiểm tra USB/storage devices
-- ✅ Quét folder hệ thống định kỳ
-- ✅ API tích hợp vào hệ thống bảo mật khác
-- ✅ Nghiên cứu và phân tích malware samples
+Hệ thống phát hiện mã độc chuyên nghiệp sử dụng **YARA rules** và **hash-based detection** với kiến trúc **Layered Architecture** hiện đại.
 
 ---
 
-## 🔗 Link YARA Rules
+## 📖 Tổng Quan Dự Án
 
-https://github.com/Yara-Rules/rules.git
+### 🎯 Mục Đích
 
-## 📁 Cấu trúc Dự án - Hướng Dẫn Phát Triển
+**Malware Detector** là một nền tảng phân tích mã độc tự động, toàn diện, được thiết kế để:
 
-Dự án được tổ chức theo **kiến trúc web chuẩn** (Standard Web Architecture) để dễ bảo trì và mở rộng.
+- **Phát hiện malware tự động** trong các file executable, script, và các file đáng ngờ
+- **Phân tích tĩnh (Static Analysis)** với nhiều kỹ thuật khác nhau
+- **Quản lý lịch sử phân tích** với database MySQL
+- **Cung cấp API** cho tích hợp vào hệ thống khác
+- **Giao diện web** thân thiện cho người dùng cuối
+
+### 🏗️ Kiến Trúc Hệ Thống
+
+Dự án được xây dựng theo **kiến trúc 3-tier** hiện đại:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Frontend Layer                        │
+│  React + TypeScript + Vite                               │
+│  - Giao diện người dùng                                  │
+│  - Upload file, xem kết quả                              │
+│  - Quản lý analyses, batch scan                          │
+└──────────────────┬──────────────────────────────────────┘
+                   │ HTTP/REST API
+┌──────────────────▼──────────────────────────────────────┐
+│                    Backend Layer                         │
+│  FastAPI (Python) - Layered Architecture                │
+│  ├─ API Layer: HTTP endpoints                           │
+│  ├─ Application Layer: Use cases                        │
+│  ├─ Domain Layer: Business logic                        │
+│  └─ Infrastructure Layer: Database, External services  │
+└──────────────────┬──────────────────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────────────────┐
+│                    Data Layer                            │
+│  MySQL Database + YARA Rules + Malware Hash DB          │
+│  - Lưu trữ lịch sử phân tích                            │
+│  - 564+ YARA rules                                      │
+│  - Malware hash database                                │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🎯 Chức Năng Chính
+
+### 1. Phát Hiện Malware Tự Động
+
+#### YARA Rules Scanning
+- **564+ YARA rules** từ Yara-Rules project (chính thức)
+- Phát hiện các loại malware: Trojan, Ransomware, Backdoor, Virus, Worm
+- Phát hiện CVE exploits, packers, obfuscators, webshells
+- Pattern matching dựa trên strings, hex patterns, regular expressions
+
+#### Hash-Based Detection
+- Tính toán SHA256, MD5, SHA1 của file
+- So sánh với malware database (Malware.json)
+- Phát hiện nhanh các file đã biết là malware
+
+#### PE File Analysis
+- Phân tích cấu trúc PE (Windows executables)
+- Trích xuất imports, exports, sections
+- Phát hiện packers (UPX, VMProtect, etc.)
+- Tính entropy để phát hiện obfuscation
+- Phân tích suspicious features
+
+#### Strings Analysis
+- Trích xuất strings từ file
+- Phát hiện suspicious strings (URLs, IPs, commands)
+- Phân tích patterns đáng ngờ
+
+#### Capabilities Detection
+- Tích hợp Capa framework (nếu có)
+- Phát hiện capabilities: network, file system, registry, etc.
+
+### 2. Quản Lý Phân Tích
+
+#### Single File Scan
+- Upload và quét một file đơn lẻ
+- Trả về kết quả chi tiết ngay lập tức
+- Lưu kết quả vào database
+
+#### Batch Scan
+- Upload folder hoặc archive (ZIP, TAR)
+- Quét nhiều file cùng lúc (async)
+- Theo dõi tiến trình quét
+- Xem kết quả tổng hợp
+
+#### Analysis History
+- Lưu trữ tất cả kết quả phân tích
+- Tìm kiếm và lọc analyses
+- Xem chi tiết từng analysis
+- Export dữ liệu (CSV, JSON, Excel)
+
+### 3. Rating System
+
+- Đánh giá chất lượng phân tích (1-5 sao)
+- Comment và tags
+- Thống kê ratings
+- Cải thiện chất lượng detection dựa trên feedback
+
+### 4. API & Integration
+
+#### RESTful API
+- Đầy đủ endpoints cho tất cả tính năng
+- Swagger/OpenAPI documentation tự động
+- Authentication & Authorization (JWT)
+- Rate limiting
+
+#### WebSocket Support
+- Real-time progress updates
+- Dynamic analysis tracking (tương lai)
+
+### 5. Giao Diện Web
+
+#### Dashboard
+- Tổng quan hệ thống
+- Thống kê analyses
+- Recent analyses
+
+#### Upload & Scan
+- Drag & drop file upload
+- Batch upload
+- Real-time progress
+
+#### Analysis Results
+- Chi tiết YARA matches
+- PE information
+- Suspicious strings
+- Capabilities
+- Download reports
+
+---
+
+## 🏛️ Kiến Trúc Backend (Layered Architecture)
+
+### Core Layer
+- **Configuration**: Application settings, environment variables
+- **Security**: JWT, password hashing, RBAC
+- **Dependencies**: Dependency Injection
+- **Logging**: Structured logging & audit
+
+### API Layer
+- **Endpoints**: HTTP request/response handling
+- **Routers**: Route aggregation
+- **Validation**: Input validation với Pydantic
+
+### Application Layer
+- **Use Cases**: Orchestration logic
+- **Event Handlers**: Side effects handling
+
+### Domain Layer
+- **Models**: Business entities
+- **Services**: Business logic
+- **Repositories**: Repository interfaces (abstractions)
+
+### Infrastructure Layer
+- **Database**: MySQL connection, repository implementations
+- **Storage**: File storage
+- **External APIs**: Third-party integrations
+
+### Shared Layer
+- **Exceptions**: Custom exceptions
+- **Utils**: Utility functions
+- **Constants**: Application constants
+
+---
+
+## 📊 Đánh Giá Dự Án
+
+### ✅ Ưu Điểm
+
+#### 1. Kiến Trúc Hiện Đại
+- **Layered Architecture**: Tách biệt concerns rõ ràng, dễ maintain
+- **Dependency Injection**: Loose coupling, dễ test
+- **Repository Pattern**: Abstraction cho database access
+- **Use Case Pattern**: Business logic được tổ chức tốt
+
+#### 2. Tính Năng Phong Phú
+- **564+ YARA rules**: Phát hiện nhiều loại malware
+- **Multi-technique detection**: YARA + Hash + PE + Strings
+- **Batch processing**: Xử lý nhiều file hiệu quả
+- **History management**: Lưu trữ và quản lý kết quả
+
+#### 3. Performance & Scalability
+- **Async/Await**: Xử lý bất đồng bộ, tăng throughput
+- **Database indexing**: Tối ưu query performance
+- **Caching**: YARA rules được compile một lần ở startup
+- **Docker support**: Dễ deploy và scale
+
+#### 4. Developer Experience
+- **Type hints**: Type safety với Python typing
+- **Auto documentation**: Swagger/OpenAPI tự động
+- **Error handling**: Comprehensive error handling
+- **Logging**: Structured logging cho debugging
+
+#### 5. Security
+- **Input validation**: Pydantic schemas
+- **CORS configuration**: Secure cross-origin requests
+- **JWT authentication**: Secure API access (planned)
+- **RBAC**: Role-based access control (planned)
+
+#### 6. User Experience
+- **Modern UI**: React + TypeScript + Tailwind CSS
+- **Responsive design**: Hoạt động tốt trên mọi thiết bị
+- **Real-time updates**: WebSocket support
+- **Export features**: CSV, JSON, Excel
+
+### ⚠️ Nhược Điểm & Hạn Chế
+
+#### 1. Static Analysis Only
+- **Chỉ phân tích tĩnh**: Không có dynamic analysis (sandbox)
+- **Không chạy file**: Không thể phát hiện behavior-based malware
+- **Giới hạn với obfuscation**: Một số malware obfuscated có thể không phát hiện được
+
+#### 2. YARA Rules Dependency
+- **Phụ thuộc vào rules**: Chất lượng phụ thuộc vào YARA rules
+- **False positives**: Có thể có false positives
+- **Cần cập nhật thường xuyên**: Rules cần được cập nhật liên tục
+
+#### 3. Performance với File Lớn
+- **Memory usage**: File lớn có thể tốn nhiều memory
+- **Processing time**: File lớn mất nhiều thời gian phân tích
+- **Không có streaming**: Phải load toàn bộ file vào memory
+
+#### 4. Database Dependency
+- **MySQL required**: Cần MySQL để lưu lịch sử
+- **Single database**: Chưa hỗ trợ multiple databases
+- **No replication**: Chưa có database replication
+
+#### 5. Limited ML Integration
+- **Chưa có ML model**: Chưa tích hợp machine learning
+- **Feature extraction**: Có feature extraction nhưng chưa dùng ML
+- **Anomaly detection**: Chưa có anomaly detection
+
+### 🎯 Ứng Dụng Thực Tế
+
+#### 1. Bảo Mật Hệ Thống
+- **Quét file download**: Kiểm tra file trước khi mở
+- **USB scanning**: Quét USB/storage devices
+- **Scheduled scanning**: Quét folder hệ thống định kỳ
+- **Email attachment scanning**: Quét file đính kèm email
+
+#### 2. Nghiên Cứu & Phân Tích
+- **Malware research**: Nghiên cứu và phân tích malware samples
+- **Threat intelligence**: Thu thập thông tin về threats
+- **Incident response**: Hỗ trợ incident response
+
+#### 3. Tích Hợp Hệ Thống
+- **CI/CD integration**: Tích hợp vào pipeline
+- **SIEM integration**: Tích hợp vào SIEM systems
+- **API integration**: Sử dụng API để tích hợp vào hệ thống khác
+
+#### 4. Giáo Dục & Đào Tạo
+- **Security training**: Dạy về malware detection
+- **Reverse engineering**: Học về reverse engineering
+- **Threat analysis**: Phân tích threats
+
+### 📈 Đánh Giá Tổng Thể
+
+| Tiêu Chí | Điểm | Nhận Xét |
+|----------|------|----------|
+| **Kiến Trúc** | ⭐⭐⭐⭐⭐ | Layered architecture hiện đại, dễ maintain |
+| **Tính Năng** | ⭐⭐⭐⭐ | Phong phú, nhưng thiếu dynamic analysis |
+| **Performance** | ⭐⭐⭐⭐ | Tốt với async/await, nhưng cần optimize cho file lớn |
+| **Security** | ⭐⭐⭐⭐ | Tốt, nhưng cần thêm authentication/authorization |
+| **Scalability** | ⭐⭐⭐⭐ | Tốt với Docker, nhưng cần thêm load balancing |
+| **Documentation** | ⭐⭐⭐⭐⭐ | Tài liệu đầy đủ, chi tiết |
+| **Code Quality** | ⭐⭐⭐⭐ | Code sạch, có type hints, nhưng cần thêm tests |
+| **User Experience** | ⭐⭐⭐⭐ | UI hiện đại, nhưng cần cải thiện UX |
+
+**Tổng Điểm: 4.25/5.0** ⭐⭐⭐⭐
+
+### 🚀 Hướng Phát Triển
+
+#### Ngắn Hạn
+- ✅ Hoàn thiện authentication & authorization
+- ✅ Thêm unit tests và integration tests
+- ✅ Cải thiện error handling
+- ✅ Optimize performance cho file lớn
+
+#### Trung Hạn
+- 🔄 Dynamic analysis (sandbox)
+- 🔄 Machine learning integration
+- 🔄 Real-time monitoring
+- 🔄 Advanced reporting
+
+#### Dài Hạn
+- 🔮 Cloud-native architecture
+- 🔮 Multi-tenant support
+- 🔮 Advanced threat intelligence
+- 🔮 AI-powered detection
+
+---
+
+## 📁 Cấu Trúc Dự Án
 
 ```
 PBL6_DetectMalwareApplication-develop/
 │
-├── 📦 app/                          # ⭐ ỨNG DỤNG WEB (FastAPI)
-│   ├── main.py                      # ⭐ Entry point chính - CHẠY TỪ ĐÂY
-│   │
-│   ├── 🎯 core/                     # Cấu hình và dependencies chung
-│   │   ├── config.py                # Settings, đường dẫn, YARA loading
-│   │   └── dependencies.py         # Shared functions (render_template, etc.)
-│   │
-│   ├── 🌐 api/                      # API Layer - Xử lý HTTP requests
-│   │   └── v1/                      # API version 1
-│   │       ├── __init__.py          # Router aggregation
-│   │       └── routes/              # API endpoints
-│   │           ├── scan.py         # POST /api/scan - Quét file
-│   │           ├── health.py       # GET /api/health - Health check
-│   │           ├── websocket.py    # WS /api/ws/{task_id} - Real-time updates
-│   │           └── web.py          # GET,POST / - Web UI (HTML pages)
-│   │
-│   ├── 📋 schemas/                  # Pydantic Models - Data validation
-│   │   └── scan.py                  # ScanResult, AnalysisResult schemas
-│   │
-│   ├── ⚙️ services/                 # Business Logic Layer - Logic xử lý
-│   │   ├── analyzer_service.py      # File analysis logic (YARA + Hash)
-│   │   └── yara_service.py         # YARA scanning service
-│   │
-│   ├── 🎨 templates/                # HTML Templates (Jinja2)
-│   │   ├── index.html               # Trang chủ - Form upload
-│   │   └── result.html             # Trang kết quả phân tích
-│   │
-│   ├── 🖼️ static/                   # Static Files (CSS, JS, Images)
-│   │   ├── css/
-│   │   │   └── style.css           # CSS chính - THIẾT KẾ GIAO DIỆN Ở ĐÂY
-│   │   ├── js/
-│   │   │   └── main.js             # JavaScript chính
-│   │   └── images/                 # Images, logos
-│   │
-│   ├── web_app.py                   # Flask app (legacy - có thể xóa)
-│   └── fastapi_app.py              # FastAPI app (legacy - có thể xóa)
+├── 📦 frontend/                    # React Frontend
+│   ├── src/
+│   │   ├── components/            # React components
+│   │   ├── pages/                 # Page components
+│   │   ├── api/                   # API client
+│   │   ├── hooks/                 # Custom hooks
+│   │   └── utils/                 # Utility functions
+│   ├── public/                    # Static files
+│   └── Dockerfile                 # Frontend Docker image
 │
-├── 🔧 src/                           # Source Code - Logic tái sử dụng
-│   ├── Analysis/                    # Analysis Modules
-│   │   └── StaticAnalyzer.py      # PE analysis, strings, Capa integration
-│   ├── Database/                    # Database Access
-│   │   ├── Driver.py               # MySQL connection
-│   │   └── Malware.py             # Malware models/queries
-│   ├── Models/                      # Data Models
-│   └── Utils/                       # Utility Functions
-│       ├── Utils.py                # Hash, YARA utilities
-│       └── Bcolors.py              # Console colors
+├── 📦 backend/                    # FastAPI Backend
+│   ├── app/
+│   │   ├── main.py                # Entry point
+│   │   ├── core/                  # Core layer
+│   │   ├── api/                   # API layer
+│   │   ├── domain/                # Domain layer
+│   │   ├── application/          # Application layer
+│   │   ├── infrastructure/         # Infrastructure layer
+│   │   └── shared/                # Shared utilities
+│   ├── src/                       # Legacy modules
+│   ├── yara_rules/                # YARA rules database
+│   ├── config/                    # Docker configuration
+│   └── requirements.txt           # Python dependencies
 │
-├── 📜 scripts/                       # Scripts tiện ích
-│   ├── check_yara_rules.py         # Kiểm tra YARA rules
-│   └── test_complete_system.py     # Test toàn bộ hệ thống
-│
-├── 🛡️ yara_rules/                   # YARA Rules Database
-│   └── rules/
-│       └── index.yar                # 564+ YARA rules từ Yara-Rules project
-│
-├── 📁 config/                        # Configuration Files
-│   ├── requirements.txt            # Python dependencies
-│   ├── Dockerfile                  # Docker image configuration
-│   └── docker-compose.yml          # Docker Compose configuration
-│
-├── 📤 uploads/                       # Thư mục upload file tạm (auto cleanup)
-├── 📝 logs/                          # Application logs (nếu có)
-├── 🐍 venv/                          # Python virtual environment
-│
-└── 📄 Documentation Files
-    ├── README.md                    # File này - Hướng dẫn tổng quan
-    ├── DEPLOYMENT.md                # Hướng dẫn deploy lên web
-    ├── API_WEB_ARCHITECTURE.md      # Giải thích kiến trúc API + Web
-    └── Procfile                     # Cho PaaS platforms (Heroku, Railway)
+├── 📁 uploads/                    # Upload folder
+├── 📁 logs/                       # Log files
+└── 📄 README.md                    # This file
 ```
 
-### 🏗️ Kiến trúc Development Flow
+---
 
-```
-📥 Request (HTTP)
-    ↓
-🌐 api/v1/routes/ (Router) → Nhận request, validate
-    ↓
-📋 schemas/ → Validate data với Pydantic
-    ↓
-⚙️ services/ → Business logic (phân tích file)
-    ↓
-🔧 src/ → Core utilities (YARA, Hash, Database)
-    ↓
-📤 Response (JSON/HTML)
-```
+## 🛡️ YARA Rules
 
-### 📝 Quy tắc Phát Triển
+### Nguồn
+- **Repository**: https://github.com/Yara-Rules/rules.git
+- **Số lượng**: 564+ rules
+- **Categories**:
+  - Malware (Trojan, Ransomware, Backdoor, etc.)
+  - CVE Rules (Exploits)
+  - Packers (UPX, VMProtect, etc.)
+  - Webshells
+  - Capabilities
 
-1. **Routes (API)** → Chỉ xử lý HTTP, gọi services
-2. **Services** → Chứa business logic chính
-3. **Schemas** → Định nghĩa data models (Pydantic)
-4. **src/** → Code tái sử dụng, không phụ thuộc vào web framework
-5. **Templates/Static** → Chỉ HTML/CSS/JS, không có logic phức tạp
+### Cơ Chế Hoạt Động
 
-### 🔄 Flow khi thêm tính năng mới
+1. **Compile Rules**: YARA rules được compile một lần ở startup
+2. **Pattern Matching**: Quét file với tất cả rules
+3. **Condition Evaluation**: Kiểm tra conditions (AND, OR, NOT)
+4. **Match Results**: Trả về các rules đã match
 
-1. Thêm route trong `app/api/v1/routes/`
-2. Thêm schema trong `app/schemas/` (nếu cần)
-3. Thêm logic trong `app/services/`
-4. Sử dụng utilities từ `src/` nếu có
-5. Cập nhật templates nếu là web feature
+---
+
+## 🗄️ Database Schema
+
+### Analyses Table
+- `id`: Primary key
+- `filename`: Tên file
+- `sha256`, `md5`: Hash values
+- `malware_detected`: Boolean
+- `yara_matches`: JSON
+- `pe_info`: JSON
+- `created_at`: Timestamp
+
+### YARA Matches Table
+- `id`: Primary key
+- `analysis_id`: Foreign key
+- `rule_name`: Tên YARA rule
+- `tags`: Tags của rule
+- `description`: Mô tả rule
+
+### Ratings Table
+- `id`: Primary key
+- `analysis_id`: Foreign key
+- `rating`: 1-5 sao
+- `comment`: Comment
+- `tags`: Tags
+- `created_at`: Timestamp
+
+---
+
+## 🔧 Công Nghệ Sử Dụng
+
+### Frontend
+- **React 18**: UI framework
+- **TypeScript**: Type safety
+- **Vite**: Build tool
+- **Tailwind CSS**: Styling
+- **React Query**: Data fetching
+- **i18next**: Internationalization
+
+### Backend
+- **FastAPI**: Web framework
+- **Python 3.10+**: Programming language
+- **MySQL**: Database
+- **YARA**: Malware detection engine
+- **Pydantic**: Data validation
+- **Uvicorn**: ASGI server
+
+### Infrastructure
+- **Docker**: Containerization
+- **Docker Compose**: Orchestration
+- **Nginx**: Reverse proxy (frontend)
+
+---
 
 ## 📚 Tài Liệu
 
-**Xem [docs/README.md](docs/README.md) để biết tất cả tài liệu có sẵn!**
-
-Tài liệu bao gồm:
-- 📖 **[QUICK_START.md](docs/QUICK_START.md)** - Hướng dẫn bắt đầu nhanh (5 phút)
-- 📁 **[STRUCTURE.md](docs/STRUCTURE.md)** - Cấu trúc và kiến trúc dự án
-- 🔍 **[ANALYSIS_TYPES.md](docs/ANALYSIS_TYPES.md)** - Giải thích cách phân tích malware
-- 💾 **[DATABASE_SETUP.md](docs/DATABASE_SETUP.md)** - Setup database cho lịch sử
-- 🚀 **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Hướng dẫn deploy production
-
-## 🚀 Cách Chạy Dự Án
-
-Có 3 phương án chạy dự án:
-
-1. **🐍 Virtual Environment (venv)** - Phát triển và test local ⭐
-2. **🐳 Docker** - Chạy trong container, sẵn sàng cho production
-3. **📦 Docker Compose** - Deploy đơn giản với Docker
+- **Backend README**: `backend/README.md` - Chi tiết về backend architecture
+- **Frontend README**: `frontend/README.md` - Chi tiết về frontend
+- **Docker Setup**: `backend/config/DOCKER_SETUP.md` - Hướng dẫn Docker
+- **Architecture**: `backend/ARCHITECTURE.md` - Kiến trúc chi tiết
 
 ---
 
-### Phương án 1: 🐍 Virtual Environment (venv) - Khuyến nghị cho Development
+## 🎓 Kết Luận
 
-**Khi nào dùng:** Khi đang phát triển, test, debug code.
+**Malware Detector** là một hệ thống phát hiện mã độc **chuyên nghiệp, hiện đại, và toàn diện**. Với kiến trúc layered architecture, 564+ YARA rules, và nhiều kỹ thuật phân tích khác nhau, hệ thống có khả năng phát hiện nhiều loại malware một cách hiệu quả.
 
-#### ⚡ Quick Start (3 bước)
+**Điểm mạnh chính:**
+- ✅ Kiến trúc hiện đại, dễ maintain và mở rộng
+- ✅ Tính năng phong phú, đáp ứng nhiều use cases
+- ✅ Performance tốt với async/await
+- ✅ Tài liệu đầy đủ, chi tiết
 
-#### Bước 1: Kích hoạt môi trường ảo venv
+**Điểm cần cải thiện:**
+- ⚠️ Thêm dynamic analysis (sandbox)
+- ⚠️ Tích hợp machine learning
+- ⚠️ Cải thiện performance với file lớn
+- ⚠️ Thêm authentication/authorization đầy đủ
 
-```powershell
-# Mở PowerShell/CMD và chuyển vào thư mục dự án
-cd "D:\pbl6\SOURCE MalwareDetector\PBL6_DetectMalwareApplication-develop"
+**Ứng dụng thực tế:**
+- 🎯 Bảo mật hệ thống
+- 🎯 Nghiên cứu & phân tích malware
+- 🎯 Tích hợp vào hệ thống khác
+- 🎯 Giáo dục & đào tạo
 
-# Kích hoạt venv (Windows PowerShell)
-.\venv\Scripts\Activate.ps1
-
-# Hoặc (Windows CMD)
-venv\Scripts\activate.bat
-
-# Hoặc (Linux/Mac)
-source venv/bin/activate
-```
-
-**Kiểm tra venv đã kích hoạt**: Bạn sẽ thấy `(venv)` ở đầu dòng prompt.
-
-#### Bước 2: Cài đặt dependencies (chỉ cần làm 1 lần)
-
-```powershell
-# Đảm bảo venv đã kích hoạt (sẽ thấy (venv) ở đầu)
-pip install -r config/requirements.txt
-```
-
-#### Bước 3: Chạy ứng dụng
-
-**⭐ Cách chạy: FastAPI (Khuyến nghị)**
-
-```powershell
-# Kích hoạt venv
-.\venv\Scripts\Activate.ps1
-
-# Chạy ứng dụng chính (kiến trúc mới)
-uvicorn app.main:app --reload --host 0.0.0.0 --port 5000
-
-# HOẶC chạy trực tiếp
-python app/main.py
-```
-
-**💡 Giải thích lệnh:**
-
-- `uvicorn` - ASGI server cho FastAPI (production-ready)
-- `app.main:app` - Import app từ `app/main.py`
-- `--reload` - Tự động reload khi code thay đổi (development)
-- `--host 0.0.0.0` - Listen trên tất cả interfaces
-- `--port 5000` - Port 5000
-
-**⚠️ Lưu ý:**
-
-- Bỏ `--reload` khi chạy production
-- Thêm `--workers 4` cho production (xử lý nhiều requests)
-
-#### Bước 4: Mở trình duyệt
-
-**⚠️ Lưu ý quan trọng:**
-
-- ✅ **Dùng một trong các URL sau**:
-  - `http://localhost:5000`
-  - `http://127.0.0.1:5000`
-
-**Truy cập:**
-
-- ✅ **Web UI**: http://localhost:5000
-- ✅ **API Documentation (Swagger)**: http://localhost:5000/api/docs
-- ✅ **ReDoc**: http://localhost:5000/api/redoc
-- ✅ **Health Check**: http://localhost:5000/api/health
-
-**⚠️ Lưu ý quan trọng:**
-
-- ✅ **Dùng**: `http://localhost:5000` hoặc `http://127.0.0.1:5000`
-- ❌ **KHÔNG dùng**: `http://0.0.0.0:5000` (sẽ báo lỗi ERR_ADDRESS_INVALID)
+**Đánh giá tổng thể: 4.25/5.0** ⭐⭐⭐⭐
 
 ---
 
-### 📋 Hướng dẫn chi tiết
-
-#### ✅ Kiểm tra venv đã kích hoạt
-
-Sau khi chạy `.\venv\Scripts\Activate.ps1`, bạn sẽ thấy:
-
-```
-(venv) PS D:\pbl6\SOURCE MalwareDetector\PBL6_DetectMalwareApplication-develop>
-```
-
-Có `(venv)` ở đầu nghĩa là đã kích hoạt thành công.
-
-#### 🔧 Tạo venv mới (nếu chưa có)
-
-```powershell
-# Tạo venv
-python -m venv venv
-
-# Kích hoạt
-.\venv\Scripts\Activate.ps1
-
-# Cài dependencies
-pip install -r config/requirements.txt
-```
-
-#### 🧪 Test YARA rules (tùy chọn)
-
-```powershell
-.\venv\Scripts\Activate.ps1
-python scripts/check_yara_rules.py
-```
-
-#### 🛑 Dừng ứng dụng
-
-Nhấn `Ctrl + C` trong terminal để dừng server.
-
-#### 🔄 Tắt venv
-
-```powershell
-deactivate
-```
-
----
-
-### 📝 Ví dụ session hoàn chỉnh
-
-```powershell
-# 1. Chuyển vào thư mục dự án
-cd "D:\pbl6\SOURCE MalwareDetector\PBL6_DetectMalwareApplication-develop"
-
-# 2. Kích hoạt venv
-.\venv\Scripts\Activate.ps1
-
-# 3. (Nếu chưa cài) Cài dependencies
-pip install -r config/requirements.txt
-
-# 4. Chạy ứng dụng
-# Option A: Flask (legacy)
-python app/web_app.py
-
-# Option B: FastAPI - Kiến trúc mới (khuyến nghị) ⭐
-uvicorn app.main:app --reload --host 0.0.0.0 --port 5000
-# HOẶC
-python app/main.py
-
-# Option C: Docker (nếu đã setup Docker)
-cd config
-docker-compose up -d
-
-# 5. Mở browser: http://localhost:5000
-
-# 6. Khi xong, nhấn Ctrl+C để dừng, sau đó:
-deactivate
-```
-
----
-
-### ⚠️ Lưu ý quan trọng
-
-1. **Luôn kích hoạt venv trước khi chạy**
-
-   - Không kích hoạt venv → Lỗi `ModuleNotFoundError`
-   - Kiểm tra: Phải thấy `(venv)` ở đầu prompt
-
-2. **Chỉ cài dependencies trong venv**
-
-   ```powershell
-   # Đúng: Kích hoạt venv trước
-   .\venv\Scripts\Activate.ps1
-   pip install -r config/requirements.txt
-
-   # Sai: Cài trực tiếp (sẽ cài vào Python system)
-   pip install -r config/requirements.txt
-   ```
-
-3. **Port 5000 đã được dùng?**
-   ```powershell
-   # Đổi port (ví dụ 8080)
-   uvicorn app.fastapi_app:app --reload --host 0.0.0.0 --port 8080
-   ```
-
----
-
-### Phương án 2: 🐳 Docker - Chạy trong Container
-
-**Khi nào dùng:** Khi muốn test production-like environment hoặc deploy.
-
-#### Yêu cầu:
-
-- Docker đã cài đặt
-- 2GB+ RAM
-- 5GB+ dung lượng ổ cứng
-
-#### Cách chạy:
-
-##### Option A: Docker Build + Run
-
-```bash
-# 1. Vào thư mục dự án
-cd PBL6_DetectMalwareApplication-develop
-
-# 2. Build Docker image
-docker build -f config/Dockerfile -t malware-detector .
-
-# 3. Chạy container
-docker run -d \
-  -p 5000:5000 \
-  -v $(pwd)/uploads:/app/uploads \
-  -v $(pwd)/yara_rules:/app/yara_rules \
-  --name malware-detector \
-  malware-detector
-
-# 4. Xem logs
-docker logs -f malware-detector
-
-# 5. Truy cập: http://localhost:5000
-```
-
-##### Option B: Docker Compose (Khuyến nghị)
-
-```bash
-# 1. Vào thư mục config
-cd config
-
-# 2. Chạy với docker-compose
-docker-compose up -d
-
-# 3. Xem logs
-docker-compose logs -f
-
-# 4. Truy cập: http://localhost:5000
-
-# Dừng container
-docker-compose down
-
-# Khởi động lại
-docker-compose restart
-```
-
-#### Quản lý Docker Container:
-
-```bash
-# Xem danh sách containers
-docker ps
-
-# Xem logs
-docker logs malware-detector
-
-# Dừng container
-docker stop malware-detector
-
-# Khởi động lại
-docker start malware-detector
-
-# Xóa container
-docker rm malware-detector
-
-# Xóa image
-docker rmi malware-detector
-```
-
-#### Lưu ý khi dùng Docker:
-
-- ✅ Tự động cài đặt tất cả dependencies
-- ✅ Môi trường production-like
-- ✅ Dễ deploy lên server
-- ⚠️ Build lần đầu có thể mất vài phút
-- ⚠️ Cần Docker đang chạy
-
----
-
-### So sánh các phương án
-
-| Phương án          | Tốc độ           | Dễ dùng       | Môi trường      | Khi nào dùng            |
-| ------------------ | ---------------- | ------------- | --------------- | ----------------------- |
-| **venv**           | ⭐⭐⭐ Rất nhanh | ⭐⭐⭐ Rất dễ | Development     | Phát triển, debug, test |
-| **Docker**         | ⭐⭐ Trung bình  | ⭐⭐ Dễ       | Production-like | Test production, deploy |
-| **Docker Compose** | ⭐⭐ Trung bình  | ⭐⭐⭐ Rất dễ | Production-like | Deploy, demo            |
-
----
-
-## 🧪 Test hệ thống
-
-```bash
-python scripts/test_complete_system.py
-```
-
-## 📊 Tính năng
-
-### Static Analysis:
-
-- ✅ **564 YARA rules** từ Yara-Rules project (chính thức)
-- ✅ **Hash-based detection** (SHA256, MD5, SHA1) với database malware
-- ✅ **PE file analysis** (nếu có pefile) - imports, exports, entropy, packers
-- ✅ **Strings extraction** - phát hiện suspicious strings
-- ✅ **Web interface** dễ sử dụng
-- ✅ **API endpoint** cho tích hợp (REST API)
-- ✅ **Folder scanning** hỗ trợ quét nhiều file
-
-### Framework:
-
-- ✅ **Flask** - Ứng dụng gốc (đơn giản)
-- ✅ **FastAPI** - Ứng dụng nâng cấp (async, auto docs, performance cao)
-
-## 🔧 Scripts tiện ích
-
-- `scripts/setup_yara.py`: Cài đặt và test YARA
-- `scripts/fix_yara_rules.py`: Sửa lỗi YARA rules
-- `scripts/test_complete_system.py`: Test toàn bộ hệ thống
-- `scripts/check_rules.py`: Kiểm tra số lượng rules
-- `scripts/simple_yara_check.py`: Kiểm tra đơn giản
-
-## 📝 Sử dụng
-
-1. Upload file đơn lẻ hoặc folder
-2. Hệ thống sẽ quét với YARA rules và hash database
-3. Xem kết quả chi tiết về malware detected
-4. Download báo cáo phân tích
-
-## 🛠️ Yêu cầu hệ thống
-
-- Python 3.10+
-- YARA engine
-- 2GB+ RAM (cho YARA rules)
-- Windows/Linux/macOS
-
-## 📞 Hỗ trợ
-
-- Xem `UPGRADE_PLAN.md` - Kế hoạch nâng cấp lên dynamic analysis
-- Xem `scripts/README.md` - Hướng dẫn scripts
-- Xem `yara_rules/rules/README.md` - Thông tin về YARA rules
-
-## 📝 Lưu ý Quan Trọng
-
-### ⭐ Entry Point Chính
-
-- **Production/Development**: Dùng `app/main.py` - Kiến trúc chuẩn, đầy đủ tính năng
-- **Legacy**: `app/web_app.py` (Flask) và `app/fastapi_app.py` (FastAPI cũ) - Có thể xóa
-
-### 🔧 Development Tips
-
-1. **Hot Reload**: Dùng `--reload` khi development để tự động reload code
-2. **Debug Mode**: FastAPI có sẵn interactive API docs tại `/api/docs`
-3. **Logs**: Xem logs trong terminal để debug
-4. **Static Files**: CSS/JS ở `app/static/`, chỉnh sửa trực tiếp và refresh browser
-
-### 📚 Tài liệu tham khảo
-
-- `DEPLOYMENT.md` - Hướng dẫn deploy lên web (Docker, VPS, Cloud)
-- `API_WEB_ARCHITECTURE.md` - Giải thích chi tiết về kiến trúc API + Web gộp chung
-
-### 🗑️ Files có thể xóa
-
-- `app/web_app.py` - Flask app (legacy)
-- `app/fastapi_app.py` - FastAPI app (legacy)
-- Các file chỉ để tham khảo nếu không dùng
-
-## ⚠️ Troubleshooting
-
-### Lỗi: ModuleNotFoundError
-
-```powershell
-# Đảm bảo venv đã kích hoạt
-.\venv\Scripts\Activate.ps1
-pip install -r config/requirements.txt
-```
-
-### Lỗi: Port 5000 đã được sử dụng
-
-```powershell
-# Đổi port (ví dụ 8080)
-# FastAPI:
-uvicorn app.fastapi_app:app --reload --host 0.0.0.0 --port 8080
-```
-
-### Lỗi: YARA rules không load
-
-```powershell
-python scripts/check_yara_rules.py
-python scripts/fix_yara_rules.py
-```
+**Chúc bạn sử dụng thành công! 🚀**

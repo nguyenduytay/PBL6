@@ -157,18 +157,18 @@ pyparsing==3.2.3
 pypdf==5.5.0
 PyPDF2==2.12.1
 PyPika==0.48.9
-pypiwin32==223
+# pypiwin32==223  # Windows only - removed for Linux/Docker compatibility
 pypng==0.20220715.0
 pyproject_hooks==1.2.0
-pyreadline3==3.5.4
+# pyreadline3==3.5.4  # Windows only - removed for Linux/Docker compatibility
 pyserial==3.5
 python-dateutil==2.8.2
 python-dotenv==1.1.0
 python-stdnum==1.19
 pytz==2025.2
 pyusb==1.2.1
-pywin32==310
-pywin32-ctypes==0.2.3
+# pywin32==310  # Windows only - removed for Linux/Docker compatibility
+# pywin32-ctypes==0.2.3  # Windows only - removed for Linux/Docker compatibility
 PyYAML==6.0.2
 qrcode==7.4.2
 referencing==0.36.2

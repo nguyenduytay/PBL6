@@ -2,6 +2,47 @@
 
 Backend API cho hệ thống phát hiện malware sử dụng **FastAPI** (Python) với **Layered Architecture**.
 
+## 📖 Giới Thiệu Dự Án
+
+### Mục Đích
+
+Hệ thống **Malware Detector** là một nền tảng phân tích mã độc tự động, sử dụng các kỹ thuật phân tích tĩnh (static analysis) để phát hiện malware trong các file executable, script, và các file đáng ngờ khác.
+
+### Các Tính Năng Chính
+
+1. **Phân Tích Tĩnh (Static Analysis)**:
+   - Quét YARA rules (564+ rules từ Yara-Rules project)
+   - Phân tích hash (SHA256, MD5, SHA1) và so sánh với malware database
+   - Phân tích PE file (Windows executables) - sections, imports, exports, entropy
+   - Trích xuất suspicious strings
+   - Phân tích capabilities (Capa tool - nếu có)
+
+2. **Quản Lý Lịch Sử Phân Tích**:
+   - Lưu trữ kết quả phân tích vào MySQL database
+   - Tìm kiếm và lọc analyses
+   - Export dữ liệu (CSV, JSON, Excel)
+   - Xóa và quản lý analyses
+
+3. **Batch Processing**:
+   - Quét nhiều file cùng lúc (folder hoặc archive)
+   - Theo dõi tiến trình quét
+   - Xử lý bất đồng bộ (async)
+
+4. **Rating System**:
+   - Đánh giá chất lượng phân tích (1-5 sao)
+   - Comment và tags
+   - Thống kê ratings
+
+### Kiến Trúc
+
+Hệ thống sử dụng **Layered Architecture** để tách biệt concerns và dễ maintain:
+
+- **API Layer**: Nhận HTTP requests, validate input, trả về responses
+- **Application Layer**: Orchestrate các use cases, xử lý business logic phức tạp
+- **Domain Layer**: Business rules, domain models, repository interfaces
+- **Infrastructure Layer**: Database connections, external services, repository implementations
+- **Core Layer**: Configuration, security, logging, dependencies
+
 ## 📋 Yêu Cầu
 
 - Python 3.10+
@@ -171,6 +212,215 @@ Repository Implementation: AnalysisRepository.get_by_id() → MySQL query
   ↓
 Response: AnalysisResponse → JSON
 ```
+
+---
+
+## 🔄 Luồng Chạy Toàn Bộ Hệ Thống (Từ Đầu Đến Cuối)
+
+### 📥 Luồng Upload và Phân Tích File
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ BƯỚC 1: CLIENT UPLOAD FILE                                  │
+└─────────────────────────────────────────────────────────────┘
+Client (Browser/Frontend)
+  ↓ POST /api/scan
+  Content-Type: multipart/form-data
+  Body: file=<binary data>
+  ↓
+┌─────────────────────────────────────────────────────────────┐
+│ BƯỚC 2: API LAYER - Nhận Request                           │
+└─────────────────────────────────────────────────────────────┘
+FastAPI Application (app/main.py)
+  ↓
+CORS Middleware → Kiểm tra origin
+  ↓
+API Router (app/api/v1/router.py)
+  ↓
+Scan Endpoint (app/api/v1/routes/scan.py)
+  ↓
+@router.post("")
+async def scan_file(file: UploadFile)
+  ↓
+Lưu file tạm: uploads/<filename>
+  ↓
+┌─────────────────────────────────────────────────────────────┐
+│ BƯỚC 3: APPLICATION LAYER - Orchestration                  │
+└─────────────────────────────────────────────────────────────┘
+AnalyzerService.analyze_and_save(filepath, filename)
+  ↓
+├─→ BƯỚC 3.1: Phân tích file
+│   analyze_single_file(filepath)
+│   ↓
+│   ├─→ HashService.check_hash(filepath)
+│   │   ├─→ Tính SHA256 của file
+│   │   ├─→ So sánh với malware database (Malware.json)
+│   │   └─→ Trả về matches nếu có
+│   │
+│   ├─→ YaraService.scan_file(filepath)  ← YARA SCANNING
+│   │   ├─→ Lấy YARA rules đã compile
+│   │   ├─→ rules.match(filepath)  ← YARA Engine quét file
+│   │   └─→ Trả về YARA matches
+│   │
+│   └─→ StaticAnalyzerService.analyze_file(filepath)
+│       ├─→ Phân tích PE file (nếu là PE)
+│       ├─→ Trích xuất strings
+│       └─→ Phân tích capabilities (Capa)
+│
+└─→ BƯỚC 3.2: Lưu kết quả
+    ├─→ Xác định malware_detected = True/False
+    ├─→ Chuẩn bị analysis_data
+    └─→ AnalysisRepository.create(analysis_data)
+        ↓
+┌─────────────────────────────────────────────────────────────┐
+│ BƯỚC 4: INFRASTRUCTURE LAYER - Database                     │
+└─────────────────────────────────────────────────────────────┘
+AnalysisRepository.create()
+  ↓
+MySQL Connection (aiomysql)
+  ↓
+INSERT INTO analyses (filename, sha256, malware_detected, ...)
+  ↓
+INSERT INTO yara_matches (analysis_id, rule_name, ...)
+  ↓
+┌─────────────────────────────────────────────────────────────┐
+│ BƯỚC 5: RESPONSE - Trả Về Kết Quả                          │
+└─────────────────────────────────────────────────────────────┘
+AnalysisRepository.create() → analysis_id
+  ↓
+AnalyzerService.analyze_and_save() → analysis_data
+  ↓
+Scan Endpoint → ScanResult (Pydantic model)
+  ↓
+FastAPI → JSON Response
+  ↓
+Client nhận kết quả:
+{
+  "filename": "test.exe",
+  "sha256": "abc123...",
+  "malware_detected": true,
+  "yara_matches": [...],
+  "pe_info": {...},
+  "analysis_time": 2.5
+}
+  ↓
+┌─────────────────────────────────────────────────────────────┐
+│ BƯỚC 6: CLEANUP                                             │
+└─────────────────────────────────────────────────────────────┘
+Xóa file tạm: os.remove(filepath)
+```
+
+### 🔍 Chi Tiết Bước 3.1: YARA Scanning (Quan Trọng Nhất)
+
+```
+YaraService.scan_file(filepath)
+  ↓
+┌─────────────────────────────────────────────────────────────┐
+│ 3.1.1: Lấy YARA Rules Đã Compile                            │
+└─────────────────────────────────────────────────────────────┘
+settings.get_yara_rules()
+  ↓
+Global variable: yara_rules (đã compile ở startup)
+  ↓
+yara.Rules object chứa 564+ rules
+  ↓
+┌─────────────────────────────────────────────────────────────┐
+│ 3.1.2: YARA Engine Quét File                                │
+└─────────────────────────────────────────────────────────────┘
+rules.match(filepath)
+  ↓
+YARA Engine (yara-python library):
+  ├─→ Mở file từ disk
+  ├─→ Đọc file byte-by-byte
+  ├─→ Với mỗi rule trong 564+ rules:
+  │   ├─→ Tìm strings patterns trong file
+  │   ├─→ Tìm hex patterns trong file
+  │   ├─→ Tìm regex patterns trong file
+  │   ├─→ Kiểm tra condition (logic: AND, OR, NOT)
+  │   └─→ Nếu condition = True → Rule MATCH
+  └─→ Trả về list các rules đã match
+  ↓
+┌─────────────────────────────────────────────────────────────┐
+│ 3.1.3: Xử Lý Matches                                        │
+└─────────────────────────────────────────────────────────────┘
+Với mỗi match:
+  ├─→ Extract rule name
+  ├─→ Extract tags
+  ├─→ Extract metadata (description, author)
+  ├─→ Extract matched strings (vị trí, giá trị)
+  └─→ Format thành Dict
+  ↓
+Trả về: List[Dict] với thông tin matches
+```
+
+### 📊 Ví Dụ Cụ Thể: Phân Tích File `trojan.exe`
+
+**Input**: File `trojan.exe` (PE file, 50KB)
+
+**Quá trình**:
+
+1. **Upload**: Client upload `trojan.exe` → Lưu vào `uploads/trojan.exe`
+
+2. **Hash Check**:
+   ```python
+   sha256 = calculate_sha256("uploads/trojan.exe")
+   # Result: "a1b2c3d4e5f6..."
+   # Check trong Malware.json → Không tìm thấy
+   ```
+
+3. **YARA Scan**:
+   ```python
+   rules = settings.get_yara_rules()  # 564+ rules đã compile
+   matches = rules.match("uploads/trojan.exe")
+   # YARA Engine quét file:
+   # - Đọc 50KB file
+   # - So khớp với 564+ rules
+   # - Tìm thấy:
+   #   * Rule "Trojan_Generic" MATCH (tìm thấy "cmd.exe" + "powershell")
+   #   * Rule "Packer_UPX" MATCH (tìm thấy UPX signature)
+   # Result: [Match(rule="Trojan_Generic"), Match(rule="Packer_UPX")]
+   ```
+
+4. **PE Analysis**:
+   ```python
+   pe_info = analyze_pe("uploads/trojan.exe")
+   # Result: {
+   #   "sections": [...],
+   #   "imports": ["kernel32.dll", "user32.dll"],
+   #   "suspicious_features": ["High entropy section"]
+   # }
+   ```
+
+5. **Kết Quả**:
+   ```json
+   {
+     "filename": "trojan.exe",
+     "sha256": "a1b2c3d4...",
+     "malware_detected": true,
+     "yara_matches": [
+       {
+         "rule": "Trojan_Generic",
+         "tags": ["trojan"],
+         "description": "Generic trojan detection"
+       },
+       {
+         "rule": "Packer_UPX",
+         "tags": ["packer"],
+         "description": "UPX packer detected"
+       }
+     ],
+     "pe_info": {...},
+     "analysis_time": 1.2
+   }
+   ```
+
+6. **Lưu Database**:
+   ```sql
+   INSERT INTO analyses (filename, sha256, malware_detected, ...)
+   INSERT INTO yara_matches (analysis_id, rule_name, ...)
+   ```
+
+---
 
 ## 🚀 Cách Chạy
 
@@ -598,18 +848,396 @@ Khi khởi động ứng dụng, hệ thống sẽ **TỰ ĐỘNG**:
 
 ---
 
-## 🛡️ YARA Rules
+## 🛡️ YARA Rules - Cơ Chế Phân Tích Mã Độc
 
-### Vị Trí
-- `yara_rules/rules/index.yar` - File chứa 564+ YARA rules
+### 📍 Vị Trí và Cấu Trúc
 
-### Nguồn
-- Từ Yara-Rules project: https://github.com/Yara-Rules/rules.git
+```
+yara_rules/
+└── rules/
+    ├── index.yar              # File chính chứa 564+ YARA rules
+    ├── malware/               # Rules phát hiện malware
+    ├── cve_rules/             # Rules phát hiện CVE exploits
+    ├── packers/               # Rules phát hiện packers/obfuscators
+    ├── webshells/             # Rules phát hiện webshells
+    └── ...                    # Các categories khác
+```
 
-### Cập Nhật Rules
+### 🔍 YARA Là Gì?
+
+**YARA** (Yet Another Recursive Acronym) là một công cụ pattern matching mạnh mẽ được thiết kế để giúp các nhà nghiên cứu malware phát hiện và phân loại các mẫu malware.
+
+**Nguyên lý hoạt động**:
+- YARA sử dụng **pattern matching** dựa trên:
+  - **Strings**: Chuỗi ký tự đặc trưng của malware
+  - **Hex patterns**: Byte patterns trong binary
+  - **Regular expressions**: Pattern phức tạp
+  - **Conditions**: Điều kiện logic kết hợp các patterns
+
+### 📝 Cấu Trúc YARA Rule
+
+Một YARA rule có cấu trúc như sau:
+
+```yara
+rule RuleName {
+    meta:
+        description = "Mô tả rule"
+        author = "Tác giả"
+        date = "2024-01-01"
+    
+    strings:
+        $string1 = "suspicious_string" ascii
+        $string2 = { E8 00 00 00 00 }  // Hex pattern
+        $regex1 = /cmd\.exe/i          // Regular expression
+    
+    condition:
+        $string1 and ($string2 or $regex1)
+}
+```
+
+**Giải thích**:
+- **meta**: Metadata mô tả rule
+- **strings**: Các patterns cần tìm (strings, hex, regex)
+- **condition**: Điều kiện để rule match (ví dụ: tìm thấy string1 VÀ (string2 HOẶC regex1))
+
+### 🔄 Luồng Phân Tích YARA Trong Hệ Thống
+
+#### Bước 1: Khởi Tạo - Load YARA Rules
+
+```
+Application Startup (app/main.py)
+  ↓
+startup_event()
+  ↓
+settings.load_yara_rules()
+  ↓
+File: app/core/config.py - load_yara_rules()
+  ↓
+yara.compile(filepath="yara_rules/rules/index.yar")
+  ↓
+YARA Engine compile tất cả rules thành compiled rules object
+  ↓
+Lưu vào global variable: yara_rules
+```
+
+**Code thực tế**:
+```python
+# File: app/core/config.py
+@classmethod
+def load_yara_rules(cls) -> Optional[yara.Rules]:
+    global yara_rules
+    if yara_rules is not None:
+        return yara_rules  # Đã load rồi, return ngay
+    
+    # Compile YARA rules từ file
+    yara_rules = yara.compile(filepath=str(settings.YARA_RULES_PATH))
+    # yara_rules giờ là một compiled rules object chứa 564+ rules
+    return yara_rules
+```
+
+**Kết quả**: Một `yara.Rules` object chứa tất cả 564+ rules đã được compile sẵn, sẵn sàng để scan.
+
+---
+
+#### Bước 2: Nhận File Upload
+
+```
+Client upload file qua POST /api/scan
+  ↓
+FastAPI nhận UploadFile
+  ↓
+Lưu file tạm vào uploads/ folder
+  ↓
+File: app/api/v1/routes/scan.py
+```
+
+**Code thực tế**:
+```python
+# File: app/api/v1/routes/scan.py
+@router.post("")
+async def scan_file(file: UploadFile = File(...)):
+    # Lưu file tạm
+    filepath = settings.UPLOAD_FOLDER / file.filename
+    with open(filepath, "wb") as f:
+        content = await file.read()
+        f.write(content)
+    
+    # Gọi phân tích
+    analysis_data = await analyzer_service.analyze_and_save(str(filepath), file.filename)
+```
+
+---
+
+#### Bước 3: Phân Tích File - Gọi YARA Service
+
+```
+analyzer_service.analyze_and_save()
+  ↓
+analyze_single_file(filepath)
+  ↓
+yara_service.scan_file(filepath)
+```
+
+**Code thực tế**:
+```python
+# File: app/services/analyzer_service.py
+async def analyze_single_file(self, filepath: str):
+    # ... hash checking ...
+    
+    # 3) YARA scan
+    yara_results = self.yara_service.scan_file(filepath)
+    results.extend(yara_results)
+```
+
+---
+
+#### Bước 4: YARA Service - Quét File Với Rules
+
+```
+YaraService.scan_file(filepath)
+  ↓
+File: app/services/yara_service.py
+  ↓
+self.rules.match(filepath)  # ← ĐÂY LÀ BƯỚC QUAN TRỌNG
+```
+
+**Code thực tế**:
+```python
+# File: app/services/yara_service.py
+def scan_file(self, filepath: str) -> List[Dict[str, Any]]:
+    if not self.rules:
+        return []  # Chưa load rules
+    
+    # YARA Engine quét file với tất cả rules đã compile
+    matches = self.rules.match(filepath)
+    # matches là list các rule đã match
+    
+    # Xử lý kết quả
+    results = []
+    for match in matches:
+        # match.rule: Tên rule đã match
+        # match.tags: Tags của rule
+        # match.meta: Metadata (description, author, etc.)
+        # match.strings: Các strings đã match trong file
+        results.append({
+            "type": "yara",
+            "rule": match.rule,
+            "tags": list(match.tags),
+            "description": match.meta.get('description', ''),
+            "strings": [str(s) for s in match.strings]
+        })
+    
+    return results
+```
+
+---
+
+#### Bước 5: YARA Engine - Quá Trình So Khớp (Matching)
+
+**Đây là bước quan trọng nhất - YARA Engine làm gì bên trong:**
+
+```
+rules.match(filepath)
+  ↓
+YARA Engine (yara-python library)
+  ↓
+1. Đọc file từ disk (filepath)
+  ↓
+2. Đọc từng byte trong file
+  ↓
+3. Với mỗi rule trong 564+ rules:
+   ├─→ Kiểm tra strings section:
+   │   ├─→ Tìm $string1 trong file
+   │   ├─→ Tìm $string2 (hex pattern) trong file
+   │   └─→ Tìm $regex1 trong file
+   │
+   ├─→ Kiểm tra condition:
+   │   ├─→ Nếu condition = "$string1 and $string2"
+   │   ├─→ Phải tìm thấy CẢ $string1 VÀ $string2
+   │   └─→ Nếu đúng → Rule MATCH
+   │
+   └─→ Nếu match → Thêm vào results
+  ↓
+4. Trả về tất cả rules đã match
+```
+
+**Ví dụ cụ thể:**
+
+Giả sử có rule:
+```yara
+rule Trojan_Generic {
+    strings:
+        $s1 = "cmd.exe" ascii
+        $s2 = "powershell" ascii
+        $s3 = { 4D 5A }  // MZ header (PE file)
+    
+    condition:
+        $s1 and $s2 and $s3
+}
+```
+
+**Quá trình scan file `malware.exe`:**
+
+1. YARA đọc file `malware.exe`
+2. Tìm kiếm:
+   - ✅ Tìm thấy `"cmd.exe"` ở offset 0x1234
+   - ✅ Tìm thấy `"powershell"` ở offset 0x5678
+   - ✅ Tìm thấy bytes `4D 5A` ở đầu file (PE header)
+3. Kiểm tra condition: `$s1 and $s2 and $s3` → **TRUE**
+4. Rule `Trojan_Generic` **MATCH** → Thêm vào results
+
+**Kết quả**:
+```json
+{
+  "type": "yara",
+  "rule": "Trojan_Generic",
+  "tags": ["trojan", "generic"],
+  "description": "Generic trojan detection",
+  "strings": [
+    {"offset": 0x1234, "value": "cmd.exe"},
+    {"offset": 0x5678, "value": "powershell"},
+    {"offset": 0x0000, "value": "MZ"}
+  ]
+}
+```
+
+---
+
+#### Bước 6: Xử Lý Kết Quả và Lưu Database
+
+```
+YARA matches
+  ↓
+YaraService.scan_file() → List[Dict]
+  ↓
+AnalyzerService.analyze_single_file() → List[Dict]
+  ↓
+AnalyzerService.analyze_and_save()
+  ↓
+Xác định malware_detected = True (nếu có YARA match)
+  ↓
+Lưu vào database:
+  - analyses table: filename, sha256, malware_detected, yara_matches (JSON)
+  - yara_matches table: analysis_id, rule_name, tags, description
+  ↓
+Trả về kết quả cho client
+```
+
+**Code thực tế**:
+```python
+# File: app/services/analyzer_service.py
+async def analyze_and_save(self, filepath: str, filename: str):
+    # Phân tích
+    results = await self.analyze_single_file(filepath)
+    static_analysis = self.analyze_with_static_analyzer(filepath)
+    
+    # Xác định có malware không
+    malware_detected = any(
+        result.get("type") in ["hash", "yara"] 
+        for result in results
+    )
+    
+    # Lưu vào database
+    analysis_data = {
+        'filename': filename,
+        'sha256': sha256,
+        'malware_detected': malware_detected,
+        'yara_matches': static_analysis.get("yara_matches", []),  # JSON
+        # ...
+    }
+    
+    analysis_id = await self.analysis_repo.create(analysis_data)
+    return analysis_data
+```
+
+---
+
+### 🎯 Tóm Tắt Luồng YARA Phân Tích
+
+```
+1. STARTUP: Compile YARA rules (564+ rules) → yara.Rules object
+   ↓
+2. UPLOAD: Client upload file → Lưu tạm vào uploads/
+   ↓
+3. SCAN: Gọi yara_service.scan_file(filepath)
+   ↓
+4. MATCH: YARA Engine quét file với tất cả rules
+   ├─→ Đọc file byte-by-byte
+   ├─→ So khớp với strings/hex/regex patterns
+   ├─→ Kiểm tra conditions
+   └─→ Trả về matches
+   ↓
+5. PROCESS: Xử lý matches → Format kết quả
+   ↓
+6. SAVE: Lưu vào database (analyses + yara_matches tables)
+   ↓
+7. RESPONSE: Trả về JSON cho client
+```
+
+### 📊 Ví Dụ Kết Quả YARA Match
+
+**Input**: File `trojan.exe` chứa:
+- String `"cmd.exe"` ở offset 0x1000
+- String `"powershell"` ở offset 0x2000
+- PE header `MZ` ở đầu file
+
+**YARA Rules Match**:
+```json
+{
+  "yara_matches": [
+    {
+      "rule": "Trojan_Generic",
+      "tags": ["trojan", "generic"],
+      "meta": {
+        "description": "Generic trojan detection rule"
+      },
+      "strings": [
+        {
+          "identifier": "$s1",
+          "offset": 4096,
+          "value": "cmd.exe"
+        },
+        {
+          "identifier": "$s2",
+          "offset": 8192,
+          "value": "powershell"
+        }
+      ]
+    }
+  ],
+  "malware_detected": true
+}
+```
+
+### 🔧 Các Loại YARA Rules Trong Hệ Thống
+
+1. **Malware Rules** (`yara_rules/rules/malware/`):
+   - Phát hiện các loại malware cụ thể (Trojan, Ransomware, Backdoor, etc.)
+
+2. **CVE Rules** (`yara_rules/rules/cve_rules/`):
+   - Phát hiện exploits cho các CVE (Common Vulnerabilities and Exposures)
+
+3. **Packer Rules** (`yara_rules/rules/packers/`):
+   - Phát hiện các packer/obfuscator (UPX, VMProtect, etc.)
+
+4. **Webshell Rules** (`yara_rules/rules/webshells/`):
+   - Phát hiện webshells (PHP, ASP, JSP backdoors)
+
+5. **Capabilities Rules** (`yara_rules/rules/capabilities/`):
+   - Phát hiện các capabilities (network, file system, registry, etc.)
+
+### 📚 Nguồn YARA Rules
+
+- **Repository**: https://github.com/Yara-Rules/rules.git
+- **Số lượng**: 564+ rules (tự động cập nhật)
+- **Vị trí**: `yara_rules/rules/index.yar`
+
+### 🔄 Cập Nhật Rules
+
 ```bash
 cd yara_rules
 git pull origin main
+# Restart backend để load rules mới
 ```
 
 ---
