@@ -115,14 +115,40 @@ class Settings:
             settings = cls()
             if settings.YARA_RULES_PATH.exists():
                 print(f"[YARA] Loading rules from: {settings.YARA_RULES_PATH}")
-                # Compile YARA rules - warnings về invalid fields sẽ không ngăn compilation
-                yara_rules = yara.compile(filepath=str(settings.YARA_RULES_PATH))
+                # Compile YARA rules với includes để load tất cả rules
+                # error_on_warning=False để bỏ qua warnings (như invalid field "sync")
+                try:
+                    yara_rules = yara.compile(
+                        filepath=str(settings.YARA_RULES_PATH),
+                        includes=True,
+                        error_on_warning=False
+                    )
+                except TypeError:
+                    # Nếu error_on_warning không được support, dùng cách khác
+                    try:
+                        yara_rules = yara.compile(filepath=str(settings.YARA_RULES_PATH), includes=True)
+                    except:
+                        # Fallback: compile trực tiếp
+                        yara_rules = yara.compile(filepath=str(settings.YARA_RULES_PATH))
+                
                 rule_count = len(list(yara_rules)) if yara_rules else 0
                 print(f"[OK] YARA rules loaded: {rule_count} rules")
                 return yara_rules
             else:
                 print(f"[WARN] YARA rules file not found: {settings.YARA_RULES_PATH}")
+                print(f"[WARN] Checking if directory exists: {settings.YARA_RULES_PATH.parent}")
+                if settings.YARA_RULES_PATH.parent.exists():
+                    print(f"[WARN] Directory exists, listing files:")
+                    import os
+                    for f in os.listdir(settings.YARA_RULES_PATH.parent):
+                        print(f"  - {f}")
                 return None
+        except yara.SyntaxError as e:
+            print(f"[ERROR] YARA syntax error: {e}")
+            print(f"[ERROR] This prevents YARA rules from loading!")
+            import traceback
+            traceback.print_exc()
+            return None
         except Exception as e:
             print(f"[WARN] Warning loading YARA rules: {e}")
             import traceback
