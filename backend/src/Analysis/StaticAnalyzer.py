@@ -124,10 +124,19 @@ class StaticAnalyzer:
                 # Extract matched strings
                 if hasattr(match, 'strings'):
                     for string_match in match.strings:
-                        match_info["strings"].append({
-                            "identifier": string_match[1],
-                            "offset": string_match[0]
-                        })
+                        # YARA Python API: string_match can be tuple (offset, identifier, data) or StringMatch object
+                        if isinstance(string_match, tuple):
+                            # Tuple format: (offset, identifier, data)
+                            match_info["strings"].append({
+                                "identifier": str(string_match[1]),
+                                "offset": int(string_match[0])
+                            })
+                        else:
+                            # StringMatch object format
+                            match_info["strings"].append({
+                                "identifier": str(string_match.identifier) if hasattr(string_match, 'identifier') else "",
+                                "offset": int(string_match.offset) if hasattr(string_match, 'offset') else 0
+                            })
                 
                 matches.append(match_info)
         except Exception as e:
