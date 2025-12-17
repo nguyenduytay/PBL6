@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { HiOutlineCloudUpload, HiOutlineX } from 'react-icons/hi'
 import { useScan } from '../../hooks'
 import { Card, Button, Badge, PageHeader } from '../../components/UI'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -33,7 +34,7 @@ const Upload: React.FC = () => {
     e.preventDefault()
     e.stopPropagation()
     setDragActive(false)
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       setFile(e.dataTransfer.files[0])
       reset()
@@ -47,7 +48,7 @@ const Upload: React.FC = () => {
     }
 
     await scan(file)
-    
+
     // Navigate to analysis detail if we have an ID
     if (result?.id) {
       setTimeout(() => {
@@ -82,11 +83,10 @@ const Upload: React.FC = () => {
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
-                  dragActive
-                    ? 'border-green-500 bg-green-900/20'
-                    : 'border-gray-600 hover:border-gray-500'
-                }`}
+                className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${dragActive
+                  ? 'border-green-500 bg-green-900/20'
+                  : 'border-gray-600 hover:border-gray-500'
+                  }`}
               >
                 <input
                   type="file"
@@ -99,19 +99,7 @@ const Upload: React.FC = () => {
                   htmlFor="file-upload"
                   className="cursor-pointer flex flex-col items-center"
                 >
-                  <svg
-                    className="w-16 h-16 text-gray-400 mb-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                    />
-                  </svg>
+                  <HiOutlineCloudUpload className="w-16 h-16 text-gray-400 mb-4" />
                   <p className="text-white font-medium mb-2">
                     {t('upload.dragDrop')}
                   </p>
@@ -138,9 +126,7 @@ const Upload: React.FC = () => {
                       }}
                       className="text-red-400 hover:text-red-300"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <HiOutlineX className="w-5 h-5" />
                     </button>
                   </div>
                 </div>

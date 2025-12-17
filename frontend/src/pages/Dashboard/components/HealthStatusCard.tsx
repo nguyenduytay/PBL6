@@ -1,6 +1,7 @@
 import React from 'react'
 import { Card } from '../../../components/UI'
 import { useTranslation } from '../../../hooks/useTranslation'
+import { HiOutlineCheckCircle, HiOutlineXCircle } from 'react-icons/hi'
 
 interface HealthStatusCardProps {
   health: {
@@ -18,24 +19,18 @@ const HealthStatusCard: React.FC<HealthStatusCardProps> = ({ health }) => {
 
   return (
     <Card
-      className={`${
-        health.status === 'healthy'
+      className={`${health.status === 'healthy'
           ? 'border-green-600 bg-green-900/20'
           : 'border-red-600 bg-red-900/20'
-      }`}
+        }`}
     >
       <div className="flex items-center">
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 ${
-          health.status === 'healthy' ? 'bg-green-600' : 'bg-red-600'
-        }`}>
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 ${health.status === 'healthy' ? 'bg-green-600' : 'bg-red-600'
+          }`}>
           {health.status === 'healthy' ? (
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
+            <HiOutlineCheckCircle className="w-6 h-6 text-white" />
           ) : (
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <HiOutlineXCircle className="w-6 h-6 text-white" />
           )}
         </div>
         <div>

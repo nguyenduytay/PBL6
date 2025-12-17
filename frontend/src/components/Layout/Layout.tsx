@@ -20,10 +20,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <Sidebar onCollapseChange={setIsSidebarCollapsed} />
 
         {/* Main Content - With padding to account for sidebar */}
-        <main 
-          className={`flex-1 p-6 transition-all duration-300 ${
-            isSidebarCollapsed ? 'ml-16' : 'ml-64'
-          }`}
+        <main
+          className={`flex-1 p-6 transition-all duration-300 ${isSidebarCollapsed ? 'ml-20' : 'ml-64'
+            }`}
         >
           <div className="max-w-7xl mx-auto">
             {children}

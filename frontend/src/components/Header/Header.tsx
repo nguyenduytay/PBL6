@@ -18,7 +18,7 @@ const Header: React.FC = () => {
         <div className="flex items-center space-x-4">
           <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
             <img src="/images/cyber-security.png" alt="Logo" className="h-[80px] w-[80px]" />
-            <div>
+            <div className="hidden md:block">
               <h1 className="text-xl font-bold">Malware Detector</h1>
               <p className="text-xs text-gray-400">Security Analysis Platform</p>
             </div>

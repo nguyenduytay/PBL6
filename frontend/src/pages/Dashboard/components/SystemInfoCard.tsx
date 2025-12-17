@@ -12,7 +12,7 @@ const SystemInfoCard: React.FC<SystemInfoCardProps> = ({ health }) => {
   const { t } = useTranslation()
 
   return (
-    <Card title={t('dashboard.systemInformation')} subtitle={t('dashboard.systemInformation')}>
+    <Card title={t('dashboard.systemInformation')}>
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <span className="text-gray-400">{t('dashboard.version')}</span>
