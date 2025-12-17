@@ -141,6 +141,8 @@ class StaticAnalyzer:
                 matches.append(match_info)
         except Exception as e:
             print(f"YARA scan error: {e}")
+            import traceback
+            traceback.print_exc()
         
         return matches
     
