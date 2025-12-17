@@ -10,6 +10,14 @@ class YaraService:
     
     def __init__(self):
         self.rules = settings.get_yara_rules()
+        if self.rules:
+            try:
+                rule_count = len(list(self.rules))
+                print(f"[YARA] YaraService initialized with {rule_count} rules")
+            except Exception as e:
+                print(f"[YARA] WARNING: Could not count rules: {e}")
+        else:
+            print("[YARA] WARNING: YaraService initialized but no rules loaded!")
     
     def scan_file(self, filepath: str) -> List[Dict[str, Any]]:
         """
@@ -19,12 +27,17 @@ class YaraService:
             List of match results
         """
         if not self.rules:
+            print(f"[YARA] WARNING: YARA rules not loaded, skipping scan for {filepath}")
             return []
         
         try:
+            print(f"[YARA] Scanning file: {filepath}")
             matches = self.rules.match(filepath)
             if not matches:
+                print(f"[YARA] No matches found for {filepath}")
                 return []
+            
+            print(f"[YARA] Found {len(matches)} matches for {filepath}")
             
             results = []
             match_details = []
@@ -54,7 +67,9 @@ class YaraService:
             return results
             
         except Exception as e:
-            print(f"YARA scan error for {filepath}: {e}")
+            print(f"[YARA] ERROR scanning {filepath}: {e}")
+            import traceback
+            traceback.print_exc()
             return [{
                 "type": "yara_error",
                 "message": f"Loi quet YARA: {str(e)}",

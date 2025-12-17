@@ -114,6 +114,8 @@ class Settings:
         try:
             settings = cls()
             if settings.YARA_RULES_PATH.exists():
+                print(f"[YARA] Loading rules from: {settings.YARA_RULES_PATH}")
+                # Compile YARA rules - warnings về invalid fields sẽ không ngăn compilation
                 yara_rules = yara.compile(filepath=str(settings.YARA_RULES_PATH))
                 rule_count = len(list(yara_rules)) if yara_rules else 0
                 print(f"[OK] YARA rules loaded: {rule_count} rules")
@@ -123,6 +125,8 @@ class Settings:
                 return None
         except Exception as e:
             print(f"[WARN] Warning loading YARA rules: {e}")
+            import traceback
+            traceback.print_exc()
             return None
     
     @classmethod
