@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Build-time argument - API URL được inject vào build
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5000/api}
+    container_name: malware-frontend
+    restart: always
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    networks:
+      - malware-network
+
+networks:
+  malware-network:
+    external: true
+

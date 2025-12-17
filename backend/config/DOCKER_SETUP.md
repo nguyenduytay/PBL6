@@ -274,12 +274,12 @@ Tất cả files Docker config nằm trong `backend/config/`:
 
 ```
 backend/config/
-├── docker-compose.yml    # Docker Compose configuration (MySQL + Backend + Frontend)
+├── docker-compose.yml    # Docker Compose configuration (MySQL + Backend)
 ├── Dockerfile            # Backend Docker image definition
 └── DOCKER_SETUP.md       # File hướng dẫn này
 
-frontend/
-└── Dockerfile            # Frontend Docker image definition (Nginx + React build)
+# Frontend chạy local (không dùng Docker)
+frontend/                 # Frontend chạy bằng npm run dev
 ```
 
 ## 📝 Notes
@@ -317,7 +317,7 @@ cd backend
 # 2. (Optional) Tạo symlink để dùng ngắn gọn
 ln -s config/docker-compose.yml docker-compose.yml
 
-# 3. Build và start tất cả services (MySQL + Backend + Frontend)
+# 3. Build và start services (MySQL + Backend)
 docker compose -f config/docker-compose.yml up -d --build
 
 # 4. Xem logs
@@ -327,16 +327,33 @@ docker compose -f config/docker-compose.yml logs -f
 curl http://localhost:5000/api/health
 
 # 6. Truy cập ứng dụng
-# Frontend: http://localhost:3000
+# Frontend: Chạy local bằng `npm run dev` trong thư mục frontend/
 # Backend API: http://localhost:5000/api
 # API Docs: http://localhost:5000/api/docs
 ```
 
 ## 🔗 Frontend Connection
 
+### Chạy Frontend Local
+
+Frontend **không chạy trong Docker**, bạn cần chạy local:
+
+```bash
+# Vào thư mục frontend
+cd frontend
+
+# Cài đặt dependencies (nếu chưa có)
+npm install
+
+# Chạy development server
+npm run dev
+```
+
+Frontend sẽ chạy tại: http://localhost:3000
+
 ### Cấu hình Frontend để kết nối với Backend Docker
 
-1. **Tạo file `.env` trong `frontend/`**:
+1. **Tạo file `.env` trong `frontend/`** (tùy chọn):
    ```env
    VITE_API_URL=http://localhost:5000/api
    ```
