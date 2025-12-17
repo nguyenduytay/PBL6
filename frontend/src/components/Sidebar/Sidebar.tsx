@@ -8,10 +8,20 @@ interface MenuItem {
   path: string
 }
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  onCollapseChange?: (isCollapsed: boolean) => void
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ onCollapseChange }) => {
   const { t } = useTranslation()
   const location = useLocation()
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
+
+  const handleToggle = () => {
+    const newState = !isCollapsed
+    setIsCollapsed(newState)
+    onCollapseChange?.(newState)
+  }
 
   const isActive = (path: string): boolean => location.pathname === path
 
@@ -65,13 +75,13 @@ const Sidebar: React.FC = () => {
 
   return (
     <aside
-      className={`bg-gray-800 text-white transition-all duration-300 flex flex-col ${isCollapsed ? 'w-16' : 'w-64'
-        } min-h-screen border-r border-gray-700`}
+      className={`bg-gray-800 text-white transition-all duration-300 flex flex-col fixed top-[100px] left-0 bottom-0 z-40 ${isCollapsed ? 'w-16' : 'w-64'
+        } border-r border-gray-700`}
     >
       {/* Collapse Toggle */}
       <div className="flex justify-end p-4 border-b border-gray-700">
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={handleToggle}
           className="p-2 rounded-md hover:bg-gray-700 transition-colors"
           title={isCollapsed ? t('common.expandSidebar') : t('common.collapseSidebar')}
         >

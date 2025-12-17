@@ -12,8 +12,8 @@ const Header: React.FC = () => {
   const isActive = (path: string): boolean => location.pathname === path
 
   return (
-    <header className="bg-gray-900 text-white shadow-lg border-b border-gray-800 fixed top-0 left-0 right-0">
-      <div className="flex items-center justify-between px-6">
+    <header className="bg-gray-900 text-white shadow-lg border-b border-gray-800 fixed top-0 left-0 right-0 z-50 h-[100px]">
+      <div className="flex items-center justify-between px-6 h-full">
         {/* Logo & Title */}
         <div className="flex items-center space-x-4">
           <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
