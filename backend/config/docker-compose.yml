@@ -63,6 +63,26 @@ services:
       retries: 3
       start_period: 40s
 
+  # ======================
+  # Frontend - React (Vite)
+  # ======================
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+      args:
+        # Build-time argument - API URL được inject vào build
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5000/api}
+    container_name: malware-frontend
+    restart: always
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - malware-network
+
 volumes:
   mysql_data:
     driver: local

@@ -274,9 +274,12 @@ Tất cả files Docker config nằm trong `backend/config/`:
 
 ```
 backend/config/
-├── docker-compose.yml    # Docker Compose configuration (MySQL + Backend)
+├── docker-compose.yml    # Docker Compose configuration (MySQL + Backend + Frontend)
 ├── Dockerfile            # Backend Docker image definition
 └── DOCKER_SETUP.md       # File hướng dẫn này
+
+frontend/
+└── Dockerfile            # Frontend Docker image definition (Nginx + React build)
 ```
 
 ## 📝 Notes
@@ -314,19 +317,19 @@ cd backend
 # 2. (Optional) Tạo symlink để dùng ngắn gọn
 ln -s config/docker-compose.yml docker-compose.yml
 
-# 3. Build và start
-docker compose up -d --build
+# 3. Build và start tất cả services (MySQL + Backend + Frontend)
+docker compose -f config/docker-compose.yml up -d --build
 
 # 4. Xem logs
-docker compose logs -f
+docker compose -f config/docker-compose.yml logs -f
 
 # 5. Kiểm tra health
 curl http://localhost:5000/api/health
 
-# 6. (Optional) Cấu hình frontend
-cd ../frontend
-echo "VITE_API_URL=http://localhost:5000/api" > .env
-npm run dev
+# 6. Truy cập ứng dụng
+# Frontend: http://localhost:3000
+# Backend API: http://localhost:5000/api
+# API Docs: http://localhost:5000/api/docs
 ```
 
 ## 🔗 Frontend Connection
