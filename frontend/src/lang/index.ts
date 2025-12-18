@@ -5,6 +5,7 @@ import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import en from './en.json'
 import vi from './vi.json'
+import zh from './zh.json'
 
 // Language resources
 const resources = {
@@ -13,6 +14,9 @@ const resources = {
   },
   vi: {
     translation: vi,
+  },
+  zh: {
+    translation: zh,
   },
 }
 
@@ -37,6 +41,7 @@ export default i18n
 export const languages = [
   { code: 'en', name: 'English', image: '/images/en.png' },
   { code: 'vi', name: 'Tiếng Việt', image: '/images/vi.png' },
+  { code: 'zh', name: '中文', image: '/images/china.png' },
 ]
 
 // Helper function to change language

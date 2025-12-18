@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { searchAnalyses } from '../../api/search'
-import { Card, PageHeader, ErrorState, LoadingState } from '../../components/UI'
+import { Card, PageHeader, ErrorState } from '../../components/UI'
+import { LoadingStateRing } from '../../components/LoadingState'
 import { SearchInput, SearchResults } from './components'
 import { AnalysisListItemResponse } from '../../datahelper/analyses.dataHelper'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -127,7 +128,7 @@ const Search: React.FC = () => {
       )}
 
       {loading && results.length === 0 ? (
-        <LoadingState translationKey="search.searching" />
+        <LoadingStateRing translationKey="search.searching" />
       ) : (
         <SearchResults 
           results={results} 

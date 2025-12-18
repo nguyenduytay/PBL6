@@ -125,11 +125,27 @@ const BatchScan: React.FC = () => {
               <input
                 ref={folderInputRef}
                 type="file"
+                id="folder-upload"
                 {...({ webkitdirectory: '', directory: '' } as any)}
                 multiple
                 onChange={handleFolderSelect}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700"
+                className="hidden"
               />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => folderInputRef.current?.click()}
+                  disabled={loading}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t('batchScan.chooseFolder')}
+                </button>
+                {selectedFolderName && (
+                  <span className="text-sm text-gray-400">
+                    {selectedFolderName}
+                  </span>
+                )}
+              </div>
               {!selectedFolderName && (
                 <p className="mt-2 text-sm text-gray-500">{t('common.noFolderSelected')}</p>
               )}
@@ -186,13 +202,29 @@ const BatchScan: React.FC = () => {
               </label>
               <input
                 type="file"
+                id="archive-upload"
                 accept=".zip,.tar,.gz,.bz2,.tar.gz,.tar.bz2"
                 onChange={(e) => {
                   const file = e.target.files?.[0] || null
                   setSelectedFile(file)
                 }}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700"
+                className="hidden"
               />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('archive-upload')?.click()}
+                  disabled={loading}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t('batchScan.chooseFile')}
+                </button>
+                {selectedFile && (
+                  <span className="text-sm text-gray-400">
+                    {selectedFile.name}
+                  </span>
+                )}
+              </div>
               {!selectedFile && (
                 <p className="mt-2 text-sm text-gray-500">{t('common.noFileSelected')}</p>
               )}

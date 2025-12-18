@@ -422,6 +422,314 @@ Trả về: List[Dict] với thông tin matches
 
 ---
 
+## 🎯 Logic Quyết Định: Làm Sao Biết File Có Malware Hay Không?
+
+### 📋 Tổng Quan
+
+Hệ thống sử dụng **3 phương pháp phân tích** để phát hiện malware, và quyết định `malware_detected = True/False` dựa trên kết quả của các phương pháp này.
+
+### 🔍 3 Phương Pháp Phân Tích
+
+#### 1️⃣ **Hash-Based Detection** (Phát Hiện Dựa Trên Hash)
+
+**Cách hoạt động:**
+- Tính SHA256 hash của file
+- So sánh với malware database (file `Malware.json`)
+- Nếu hash khớp → File đã được biết là malware
+
+**Code thực tế:**
+```python
+# File: app/services/hash_service.py
+sha256 = sha256_hash(filepath)  # Tính SHA256
+malwares = await get_malware_by_list_sha256([sha256])  # Tìm trong database
+
+if malwares:
+    # File có trong malware database → malware_detected = True
+    results.append({
+        "type": "hash",  # ← Quan trọng: type = "hash"
+        "sha256": malware.sha256,
+        "malwareType": malware.malwareType,
+        "infoUrl": f"https://bazaar.abuse.ch/sample/{sha256}/"
+    })
+```
+
+**Kết quả:**
+- Nếu tìm thấy → `result["type"] = "hash"` → **malware_detected = True**
+- Nếu không tìm thấy → Không có result → Tiếp tục kiểm tra YARA
+
+---
+
+#### 2️⃣ **YARA Scanning** (Phát Hiện Dựa Trên Pattern Matching)
+
+**Cách hoạt động:**
+- Quét file với 564+ YARA rules
+- Mỗi rule tìm kiếm patterns đặc trưng của malware (strings, hex patterns, regex)
+- Nếu bất kỳ rule nào match → File có dấu hiệu malware
+
+**Code thực tế:**
+```python
+# File: app/services/yara_service.py
+matches = self.rules.match(filepath)  # YARA Engine quét file
+
+if matches:
+    # Có rule match → malware_detected = True
+    results.append({
+        "type": "yara",  # ← Quan trọng: type = "yara"
+        "matches": ", ".join(match_details),
+        "rule_count": len(matches)
+    })
+```
+
+**Kết quả:**
+- Nếu có match → `result["type"] = "yara"` → **malware_detected = True**
+- Nếu không có match → Không có result → File có thể sạch
+
+---
+
+#### 3️⃣ **Static Analysis** (Phân Tích Tĩnh - PE, Strings, Capabilities)
+
+**Cách hoạt động:**
+- Phân tích cấu trúc PE file (nếu là Windows executable)
+- Trích xuất suspicious strings
+- Phân tích capabilities (network, file system, registry access)
+- **Lưu ý**: Static analysis chỉ cung cấp thông tin bổ sung, **KHÔNG quyết định** malware_detected
+
+**Code thực tế:**
+```python
+# File: app/services/static_analyzer_service.py
+static_analysis = self.static_analyzer_service.analyze_file(filepath)
+# Trả về: {
+#     "hashes": {"sha256": ..., "md5": ...},
+#     "yara_matches": [...],  # Chi tiết YARA matches (chỉ để lưu DB)
+#     "pe_info": {...},
+#     "strings": [...],
+#     "capabilities": [...]
+# }
+```
+
+**Lưu ý quan trọng:**
+- StaticAnalyzer **CŨNG chạy YARA scan** (dòng 62 trong `StaticAnalyzer.py`), nhưng:
+  - YARA scan trong StaticAnalyzer chỉ để lấy **thông tin chi tiết** (rule names, strings, metadata)
+  - **KHÔNG ảnh hưởng** đến quyết định `malware_detected`
+  - Chỉ dùng để lưu vào database (`yara_matches` field)
+
+**Kết quả:**
+- Chỉ cung cấp thông tin chi tiết về file (PE info, strings, capabilities)
+- YARA matches từ StaticAnalyzer chỉ để lưu vào database, **KHÔNG dùng để quyết định** malware_detected
+- Quyết định `malware_detected` chỉ dựa trên `YaraService.scan_file()` và `HashService.check_hash()`
+
+---
+
+### ⚖️ Logic Quyết Định `malware_detected`
+
+**Code quyết định:**
+```python
+# File: app/services/analyzer_service.py - analyze_and_save()
+
+# BƯỚC 1: Thu thập kết quả từ các phương pháp
+results = await self.analyze_single_file(filepath)
+# analyze_single_file() chạy:
+#   1. HashService.check_hash() → results với type="hash" (nếu match)
+#   2. YaraService.scan_file() → results với type="yara" (nếu match)
+#   3. Nếu không có gì → results với type="clean"
+# 
+# results = [
+#     {"type": "hash", ...},      # Nếu hash match
+#     {"type": "yara", ...},      # Nếu YARA match
+#     {"type": "clean", ...}      # Nếu không phát hiện gì
+# ]
+
+# BƯỚC 2: LOGIC QUYẾT ĐỊNH (dòng 88-91)
+malware_detected = any(
+    result.get("type") in ["hash", "yara"] 
+    for result in results
+)
+
+# BƯỚC 3: Static Analysis (chỉ để lấy thông tin chi tiết, KHÔNG ảnh hưởng malware_detected)
+static_analysis = self.analyze_with_static_analyzer(filepath)
+# StaticAnalyzer cũng chạy YARA scan, nhưng chỉ để lấy chi tiết matches
+# → Lưu vào database, KHÔNG dùng để quyết định malware_detected
+```
+
+**Giải thích:**
+- `malware_detected = True` **NẾU**:
+  - ✅ Có bất kỳ result nào có `type == "hash"` (hash match với malware database)
+  - ✅ **HOẶC** có bất kỳ result nào có `type == "yara"` (YARA rule match)
+  
+- `malware_detected = False` **NẾU**:
+  - ❌ Không có result nào có `type == "hash"`
+  - ❌ **VÀ** không có result nào có `type == "yara"`
+  - ✅ Chỉ có result có `type == "clean"` hoặc không có result nào
+
+---
+
+### 📊 Ví Dụ Cụ Thể
+
+#### **Ví Dụ 1: File Malware (Hash Match)**
+
+**Input**: File `trojan.exe` có SHA256 đã có trong malware database
+
+**Quá trình phân tích:**
+1. **Hash Check**: 
+   ```python
+   sha256 = "a1b2c3d4e5f6..."  # Hash của file
+   malwares = get_malware_by_list_sha256([sha256])
+   # → Tìm thấy trong database
+   results = [{"type": "hash", "malwareType": "Trojan", ...}]
+   ```
+
+2. **YARA Scan**: 
+   ```python
+   matches = rules.match(filepath)
+   # → Không có match (file đã được pack/obfuscate)
+   ```
+
+3. **Quyết định**:
+   ```python
+   malware_detected = any(result["type"] in ["hash", "yara"] for result in results)
+   # → malware_detected = True (vì có result["type"] == "hash")
+   ```
+
+**Kết quả**: `malware_detected = True` ✅
+
+---
+
+#### **Ví Dụ 2: File Malware (YARA Match)**
+
+**Input**: File `suspicious.exe` chứa patterns đặc trưng của malware
+
+**Quá trình phân tích:**
+1. **Hash Check**: 
+   ```python
+   sha256 = "x1y2z3..."  # Hash mới, chưa có trong database
+   malwares = get_malware_by_list_sha256([sha256])
+   # → Không tìm thấy
+   ```
+
+2. **YARA Scan**: 
+   ```python
+   matches = rules.match(filepath)
+   # → Match với rule "Trojan_Generic" (tìm thấy "cmd.exe" + "powershell")
+   results = [{"type": "yara", "matches": "Trojan_Generic", ...}]
+   ```
+
+3. **Quyết định**:
+   ```python
+   malware_detected = any(result["type"] in ["hash", "yara"] for result in results)
+   # → malware_detected = True (vì có result["type"] == "yara")
+   ```
+
+**Kết quả**: `malware_detected = True` ✅
+
+---
+
+#### **Ví Dụ 3: File Sạch (Clean File)**
+
+**Input**: File `notepad.exe` (file Windows hợp lệ)
+
+**Quá trình phân tích:**
+1. **Hash Check**: 
+   ```python
+   sha256 = "abc123..."
+   malwares = get_malware_by_list_sha256([sha256])
+   # → Không tìm thấy
+   ```
+
+2. **YARA Scan**: 
+   ```python
+   matches = rules.match(filepath)
+   # → Không có match (file không có patterns đáng ngờ)
+   ```
+
+3. **Quyết định**:
+   ```python
+   results = []  # Không có result nào
+   malware_detected = any(result["type"] in ["hash", "yara"] for result in results)
+   # → malware_detected = False (vì không có result nào)
+   ```
+
+**Kết quả**: `malware_detected = False` ✅
+
+---
+
+#### **Ví Dụ 4: File Có Cả Hash Và YARA Match**
+
+**Input**: File `known_malware.exe` vừa có trong database, vừa match YARA rules
+
+**Quá trình phân tích:**
+1. **Hash Check**: 
+   ```python
+   results = [{"type": "hash", ...}]  # Hash match
+   ```
+
+2. **YARA Scan**: 
+   ```python
+   results.append({"type": "yara", ...})  # YARA match
+   ```
+
+3. **Quyết định**:
+   ```python
+   malware_detected = any(result["type"] in ["hash", "yara"] for result in results)
+   # → malware_detected = True (có cả hash và yara match)
+   ```
+
+**Kết quả**: `malware_detected = True` ✅
+
+---
+
+### 🎯 Tóm Tắt Logic Quyết Định
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              QUYẾT ĐỊNH malware_detected                 │
+└─────────────────────────────────────────────────────────┘
+
+File Upload
+    ↓
+┌─────────────────────────────────────────────────────────┐
+│ BƯỚC 1: Hash Check                                      │
+│   ├─→ Tính SHA256                                       │
+│   ├─→ So sánh với malware database                      │
+│   └─→ Nếu match → result["type"] = "hash"              │
+└─────────────────────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────────────────────┐
+│ BƯỚC 2: YARA Scan                                       │
+│   ├─→ Quét với 564+ YARA rules                          │
+│   ├─→ Tìm patterns đặc trưng                           │
+│   └─→ Nếu match → result["type"] = "yara"              │
+└─────────────────────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────────────────────┐
+│ BƯỚC 3: Quyết Định                                      │
+│                                                          │
+│   malware_detected = any(                               │
+│       result["type"] in ["hash", "yara"]                │
+│       for result in results                             │
+│   )                                                      │
+│                                                          │
+│   ┌──────────────────────────────────────┐              │
+│   │ Nếu có result["type"] == "hash"     │              │
+│   │ HOẶC result["type"] == "yara"       │              │
+│   │ → malware_detected = True ✅         │              │
+│   └──────────────────────────────────────┘              │
+│                                                          │
+│   ┌──────────────────────────────────────┐              │
+│   │ Nếu KHÔNG có "hash" VÀ "yara"       │              │
+│   │ → malware_detected = False ✅        │              │
+│   └──────────────────────────────────────┘              │
+└─────────────────────────────────────────────────────────┘
+```
+
+### ⚠️ Lưu Ý Quan Trọng
+
+1. **Hash Detection là chính xác nhất**: Nếu hash match với database → File chắc chắn là malware đã biết
+2. **YARA Detection có thể có false positive**: Một số file hợp lệ có thể match với YARA rules (ví dụ: file packer, obfuscator)
+3. **Static Analysis không quyết định**: PE info, strings, capabilities chỉ cung cấp thông tin bổ sung, không ảnh hưởng đến `malware_detected`
+4. **Kết hợp nhiều phương pháp**: Hệ thống sử dụng cả hash và YARA để tăng độ chính xác
+
+---
+
 ## 🚀 Cách Chạy
 
 ### Phương Án 1: Virtual Environment (Development) ⭐
@@ -455,11 +763,19 @@ pip install -r requirements.txt
 Tạo file `.env` trong thư mục `backend/`:
 
 ```env
-DB_USER=root
-DB_PASSWORD=your_password
+# Windows venv local - để frontend có thể kết nối
+HOST=127.0.0.1
+PORT=5000
+
+# Database
 DB_HOST=127.0.0.1
-DB_NAME=malwaredetection
 DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=malwaredetection
+
+# CORS
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173
 ```
 
 **Lưu ý**: 

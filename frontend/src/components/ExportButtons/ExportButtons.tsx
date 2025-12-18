@@ -32,8 +32,13 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
       link.href = url
       link.download = `analyses_${new Date().getTime()}.csv`
       link.click()
-      URL.revokeObjectURL(url)
-    } catch (err) {
+      
+      // Cleanup after a short delay
+      setTimeout(() => {
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+      }, 100)
+    } catch (err: any) {
       // Export failed silently
     } finally {
       setExporting(false)

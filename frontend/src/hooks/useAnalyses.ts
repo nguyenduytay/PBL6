@@ -17,6 +17,7 @@ interface UseAnalysesReturn {
   error: ErrorResponse | null
   refetch: () => Promise<void>
   deleteAnalysisById: (id: number) => Promise<void>
+  deleteAnalysisByIdWithoutRefetch: (id: number) => Promise<void>
 }
 
 export const useAnalyses = (limit: number = 100, offset: number = 0): UseAnalysesReturn => {
@@ -55,6 +56,15 @@ export const useAnalyses = (limit: number = 100, offset: number = 0): UseAnalyse
     }
   }
 
+  const deleteAnalysisByIdWithoutRefetch = async (id: number): Promise<void> => {
+    try {
+      await deleteAnalysis(id)
+      // Không tự động refetch, để component tự quyết định khi nào refetch
+    } catch (err) {
+      throw err as ErrorResponse
+    }
+  }
+
   return {
     analyses,
     total,
@@ -62,6 +72,7 @@ export const useAnalyses = (limit: number = 100, offset: number = 0): UseAnalyse
     error,
     refetch: fetchAnalyses,
     deleteAnalysisById,
+    deleteAnalysisByIdWithoutRefetch,
   }
 }
 

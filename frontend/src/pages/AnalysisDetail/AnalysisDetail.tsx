@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useAnalysis, useRatings } from '../../hooks'
-import { Card, Badge, Button, LoadingState, ErrorState } from '../../components/UI'
+import { Card, Badge, Button, ErrorState } from '../../components/UI'
+import { LoadingStateRing } from '../../components/LoadingState'
 import { useTranslation } from '../../hooks/useTranslation'
 
 const AnalysisDetail: React.FC = () => {
@@ -35,7 +36,7 @@ const AnalysisDetail: React.FC = () => {
   }
 
   if (loading) {
-    return <LoadingState translationKey="common.loading" />
+    return <LoadingStateRing translationKey="common.loading" />
   }
 
   if (error) {

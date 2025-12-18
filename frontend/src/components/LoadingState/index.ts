@@ -1,2 +1,2 @@
-export { default } from './LoadingState'
+export { LoadingState, LoadingStateRing } from './LoadingState'
 

@@ -6,7 +6,7 @@ export { default as Table } from './Table'
 
 // Common components
 export { default as PageHeader } from '../PageHeader'
-export { default as LoadingState } from '../LoadingState'
+export { LoadingStateRing, LoadingState } from '../LoadingState'
 export { default as ErrorState } from '../ErrorState'
 export { default as EmptyState } from '../EmptyState'
 export { default as ConfirmationModal } from '../ConfirmationModal'

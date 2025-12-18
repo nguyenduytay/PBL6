@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from 'react'
 import { useAnalyses } from '../../hooks'
-import { Card, PageHeader, LoadingState, ErrorState, EmptyState, ConfirmationModal, Pagination } from '../../components/UI'
+import { Card, PageHeader, ErrorState, EmptyState, ConfirmationModal, Pagination } from '../../components/UI'
 import { AnalysesTable, AnalysesToolbar } from './components'
 import { useTranslation } from '../../hooks/useTranslation'
 import { DEFAULT_PAGE_LIMIT } from '../../constants'
+import { LoadingStateRing } from '@/components/LoadingState'
 
 const Analyses: React.FC = () => {
   const { t } = useTranslation()
   const [limit, setLimit] = useState<number>(DEFAULT_PAGE_LIMIT)
   const [currentPage, setCurrentPage] = useState<number>(1)
   const offset = (currentPage - 1) * limit
-  const { analyses, total, loading, error, deleteAnalysisById, refetch } = useAnalyses(limit, offset)
+  const { analyses, total, loading, error, deleteAnalysisById, deleteAnalysisByIdWithoutRefetch, refetch } = useAnalyses(limit, offset)
   const [deleting, setDeleting] = useState<number | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [deleteMultipleConfirm, setDeleteMultipleConfirm] = useState<boolean>(false)
   const [deletingMultiple, setDeletingMultiple] = useState<boolean>(false)
+  const [deletingCount, setDeletingCount] = useState<number>(0)
 
   // Clear selection when analyses change (e.g., after refetch, page change)
   useEffect(() => {
@@ -33,17 +35,27 @@ const Analyses: React.FC = () => {
   const handleDelete = async (id: number) => {
     setDeleting(id)
     try {
+      // Optimistic update: Xóa ngay trên UI
+      const remainingAnalyses = analyses.filter(a => a.id !== id)
+      
       await deleteAnalysisById(id)
       setDeleteConfirm(null)
-      setSelectedIds(new Set())
+      setSelectedIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(id)
+        return newSet
+      })
+      
       // Nếu xóa item cuối cùng của trang và không phải trang đầu, quay về trang trước
-      if (analyses.length === 1 && currentPage > 1) {
+      if (remainingAnalyses.length === 0 && currentPage > 1) {
         setCurrentPage(currentPage - 1)
       } else {
         await refetch()
       }
     } catch (err: any) {
       alert(err.detail || t('analyses.deleteError'))
+      // Nếu lỗi, refetch để đồng bộ lại
+      await refetch()
     } finally {
       setDeleting(null)
     }
@@ -70,31 +82,45 @@ const Analyses: React.FC = () => {
   const handleDeleteMultiple = async () => {
     if (selectedIds.size === 0) return
 
-    setDeletingMultiple(true)
     const idsArray = Array.from(selectedIds)
-    const originalCount = idsArray.length
+    const idsToDelete = new Set(idsArray)
+    const countToDelete = idsArray.length
+    
+    setDeletingMultiple(true)
+    setDeletingCount(countToDelete)
+    
+    // Optimistic update: Xóa ngay trên UI trước
+    const remainingAnalyses = analyses.filter(a => !idsToDelete.has(a.id))
     
     try {
-      for (const id of idsArray) {
-        try {
-          await deleteAnalysisById(id)
-        } catch (err: any) {
+      // Xóa tất cả cùng lúc (parallel) thay vì tuần tự
+      // Dùng deleteAnalysisByIdWithoutRefetch để tránh refetch nhiều lần
+      const deletePromises = idsArray.map(id => 
+        deleteAnalysisByIdWithoutRefetch(id).catch(() => {
           // Continue deleting others even if one fails
-        }
-      }
+          return null
+        })
+      )
+      
+      await Promise.all(deletePromises)
+      
       setDeleteMultipleConfirm(false)
       setSelectedIds(new Set())
       
+      // Chỉ refetch 1 lần sau khi xóa xong tất cả
       // Nếu xóa hết items của trang và không phải trang đầu, quay về trang trước
-      if (analyses.length <= originalCount && currentPage > 1) {
+      if (remainingAnalyses.length === 0 && currentPage > 1) {
         setCurrentPage(currentPage - 1)
       } else {
         await refetch()
       }
     } catch (err: any) {
       alert(err.detail || t('analyses.deleteMultipleError'))
+      // Nếu lỗi, refetch để đồng bộ lại với server
+      await refetch()
     } finally {
       setDeletingMultiple(false)
+      setDeletingCount(0)
     }
   }
 
@@ -114,17 +140,18 @@ const Analyses: React.FC = () => {
   const isAllSelected = analyses.length > 0 && selectedIds.size === analyses.length
   const isIndeterminate = selectedIds.size > 0 && selectedIds.size < analyses.length
 
-  if (loading) {
-    return <LoadingState translationKey="common.loading" />
-  }
-
-  if (error) {
-    return <ErrorState error={error} />
-  }
-
   const headers = [t('analyses.id'), t('analyses.filename'), t('analyses.status'), t('analyses.analysisTime'), t('analyses.createdAt'), t('analyses.actions')]
 
   return (
+    <>
+    {error && <ErrorState error={error} />}
+    {(loading || deletingMultiple) && (
+      <LoadingStateRing 
+        translationKey={deletingMultiple ? 'analyses.deleting' : 'common.loading'}
+        message={deletingMultiple ? t('analyses.deletingMultiple', { count: deletingCount }) : undefined}
+      />
+    )}
+    {!loading && !deletingMultiple && (
     <div className="space-y-6">
       <PageHeader
         translationKey={{ title: 'analyses.title', subtitle: 'analyses.subtitle' }}
@@ -207,6 +234,8 @@ const Analyses: React.FC = () => {
         variant="danger"
       />
     </div>
+    )}
+    </>
   )
 }
 

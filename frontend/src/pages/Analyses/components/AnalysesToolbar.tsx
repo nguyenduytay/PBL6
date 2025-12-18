@@ -23,7 +23,7 @@ const AnalysesToolbar: React.FC<AnalysesToolbarProps> = ({
     <div className="flex items-center space-x-4">
       <div className="flex items-center space-x-2">
         <span className="text-sm text-gray-400">{t('analyses.show')}:</span>
-        {[1, 2, 3, 5, 10, 20, 50].map((num) => (
+        {[10, 20, 50, 100].map((num) => (
           <button
             key={num}
             onClick={() => onLimitChange(num)}

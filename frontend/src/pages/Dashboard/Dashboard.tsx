@@ -1,6 +1,7 @@
 import React from 'react'
 import { useAnalysisStats, useHealth } from '../../hooks'
-import { StatCard, PageHeader, LoadingState } from '../../components/UI'
+import { StatCard, PageHeader } from '../../components/UI'
+import { LoadingStateRing } from '../../components/LoadingState'
 import { HealthStatusCard, QuickActionsCard, SystemInfoCard } from './components'
 import { useTranslation } from '../../hooks/useTranslation'
 import {
@@ -16,7 +17,7 @@ const Dashboard: React.FC = () => {
   const { health, loading: healthLoading } = useHealth()
 
   if (statsLoading || healthLoading) {
-    return <LoadingState translationKey="common.loading" />
+    return <LoadingStateRing translationKey="common.loading" />
   }
 
   return (
