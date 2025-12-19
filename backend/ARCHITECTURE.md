@@ -111,3 +111,41 @@ Request → API Layer → Application Layer → Domain Layer → Infrastructure 
 4. **Documentation**: Comment đầy đủ cho mỗi function
 5. **Type Hints**: Sử dụng type hints cho tất cả functions
 
+backend/
+├── app/
+│   ├── __init__.py
+│   ├── main.py              # FastAPI app
+│   ├── core/
+│   │   ├── config.py       # Settings
+│   │   ├── security.py     # Auth, JWT
+│   │   ├── database.py     # DB connection
+│   │   └── dependencies.py # DI
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── router.py       # Main router
+│   │   └── v1/
+│   │       ├── scan.py     # Scan endpoints
+│   │       ├── analysis.py # Analysis endpoints
+│   │       └── auth.py     # Auth endpoints
+│   ├── services/
+│   │   ├── scan_service.py      # Scan business logic
+│   │   ├── analysis_service.py  # Analysis business logic
+│   │   └── user_service.py      # User management
+│   ├── models/
+│   │   ├── user.py         # User model
+│   │   ├── scan.py         # Scan result model
+│   │   └── analysis.py     # Analysis model
+│   ├── schemas/
+│   │   ├── user.py         # User schemas
+│   │   ├── scan.py         # Scan schemas
+│   │   └── analysis.py     # Analysis schemas
+│   ├── ml/
+│   │   ├── ember_model.py  # EMBER model wrapper
+│   │   ├── features.py     # Feature extraction
+│   │   └── predictor.py    # Prediction logic
+│   └── utils/
+│       ├── file_utils.py   # File handling
+│       ├── validators.py   # Input validation
+│       └── logger.py       # Logging
+├── tests/
+└── requirements.txt
