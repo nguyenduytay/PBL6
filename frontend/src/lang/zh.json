@@ -181,8 +181,6 @@
     "scanFolder": "扫描文件夹",
     "scanFolderSubtitle": "选择文件夹以扫描所有文件",
     "selectFolder": "选择文件夹",
-    "chooseFolder": "选择文件夹",
-    "chooseFile": "选择文件",
     "selected": "已选择",
     "files": "个文件",
     "totalSize": "总大小",

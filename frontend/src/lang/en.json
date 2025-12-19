@@ -181,8 +181,6 @@
     "scanFolder": "Scan Folder",
     "scanFolderSubtitle": "Select a folder to scan all files",
     "selectFolder": "Select Folder",
-    "chooseFolder": "Choose Folder",
-    "chooseFile": "Choose File",
     "selected": "Selected",
     "files": "files",
     "totalSize": "Total size",
