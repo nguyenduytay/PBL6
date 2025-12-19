@@ -12,11 +12,12 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from app.database.analysis_repository import AnalysisRepository
-from app.models.analysis import AnalysisResponse
+from app.services.analysis_service import AnalysisService
+from app.schemas.analysis import AnalysisResponse
+
 
 router = APIRouter()
-analysis_repo = AnalysisRepository()
+analysis_service = AnalysisService()
 
 
 @router.get("/analyses")
@@ -52,8 +53,8 @@ async def search_analyses(
         query = q.strip()
         
         # Get results and total count
-        results = await analysis_repo.search(query, limit=limit, offset=offset)
-        total = await analysis_repo.count_search(query)
+        results = await analysis_service.search(query, limit=limit, offset=offset)
+        total = await analysis_service.count_search(query)
         
         if not results:
             # Return empty list if no results

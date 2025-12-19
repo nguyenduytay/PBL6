@@ -1,29 +1,30 @@
 """
-Analysis Repository - CRUD operations cho analyses
+Analysis Service - Business logic và data access cho analyses
 """
 import json
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 import aiomysql  # type: ignore[import-untyped]
-# Note: aiomysql==0.2.0 is installed via requirements.txt
-# If IDE shows import error, ensure Python interpreter points to venv
 
 
-class AnalysisRepository:
-    """Repository cho Analysis operations"""
+class AnalysisService:
+    """Service cho Analysis operations - Kết hợp business logic và data access"""
     
     @staticmethod
     async def create(analysis_data: Dict[str, Any]) -> Optional[int]:
         """
         Tạo analysis mới
         
+        Args:
+            analysis_data: Dictionary chứa thông tin analysis
+            
         Returns:
             ID của analysis vừa tạo, hoặc None nếu lỗi
         """
-        from app.database.connection import _db
+        from app.core.database import get_db_connection
         
         try:
-            pool = await _db.connect()
+            pool = await get_db_connection()
             conn = await pool.acquire()
         except Exception as e:
             print(f"[WARN] Cannot get database connection: {e}")
@@ -86,10 +87,10 @@ class AnalysisRepository:
     @staticmethod
     async def get_by_id(analysis_id: int) -> Optional[Dict[str, Any]]:
         """Lấy analysis theo ID"""
-        from app.database.connection import _db
+        from app.core.database import get_db_connection
         
         try:
-            pool = await _db.connect()
+            pool = await get_db_connection()
             conn = await pool.acquire()
         except Exception as e:
             print(f"[WARN] Cannot get database connection: {e}")
@@ -123,10 +124,10 @@ class AnalysisRepository:
     @staticmethod
     async def get_all(limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
         """Lấy tất cả analyses với pagination"""
-        from app.database.connection import _db
+        from app.core.database import get_db_connection
         
         try:
-            pool = await _db.connect()
+            pool = await get_db_connection()
             conn = await pool.acquire()
         except Exception as e:
             print(f"[WARN] Cannot get database connection: {e}")
@@ -160,10 +161,10 @@ class AnalysisRepository:
     @staticmethod
     async def get_by_sha256(sha256: str) -> Optional[Dict[str, Any]]:
         """Lấy analysis theo SHA256"""
-        from app.database.connection import _db
+        from app.core.database import get_db_connection
         
         try:
-            pool = await _db.connect()
+            pool = await get_db_connection()
             conn = await pool.acquire()
         except Exception as e:
             print(f"[WARN] Cannot get database connection: {e}")
@@ -207,10 +208,10 @@ class AnalysisRepository:
         Returns:
             List of matching analyses
         """
-        from app.database.connection import _db
+        from app.core.database import get_db_connection
         
         try:
-            pool = await _db.connect()
+            pool = await get_db_connection()
             conn = await pool.acquire()
         except Exception as e:
             print(f"[WARN] Cannot get database connection: {e}")
@@ -257,10 +258,10 @@ class AnalysisRepository:
         Returns:
             Total count of matching analyses
         """
-        from app.database.connection import _db
+        from app.core.database import get_db_connection
         
         try:
-            pool = await _db.connect()
+            pool = await get_db_connection()
             conn = await pool.acquire()
         except Exception as e:
             print(f"[WARN] Cannot get database connection: {e}")
@@ -284,10 +285,10 @@ class AnalysisRepository:
     @staticmethod
     async def count_all() -> int:
         """Đếm tổng số analyses"""
-        from app.database.connection import _db
+        from app.core.database import get_db_connection
         
         try:
-            pool = await _db.connect()
+            pool = await get_db_connection()
             conn = await pool.acquire()
         except Exception as e:
             print(f"[WARN] Cannot get database connection: {e}")
@@ -304,10 +305,10 @@ class AnalysisRepository:
     @staticmethod
     async def get_statistics() -> Dict[str, Any]:
         """Lấy thống kê"""
-        from app.database.connection import _db
+        from app.core.database import get_db_connection
         
         try:
-            pool = await _db.connect()
+            pool = await get_db_connection()
             conn = await pool.acquire()
         except Exception as e:
             print(f"[WARN] Cannot get database connection: {e}")
@@ -351,10 +352,10 @@ class AnalysisRepository:
     @staticmethod
     async def delete(analysis_id: int) -> bool:
         """Xóa analysis và các dữ liệu liên quan"""
-        from app.database.connection import _db
+        from app.core.database import get_db_connection
         
         try:
-            pool = await _db.connect()
+            pool = await get_db_connection()
             conn = await pool.acquire()
         except Exception as e:
             print(f"[WARN] Cannot get database connection: {e}")
@@ -375,4 +376,3 @@ class AnalysisRepository:
                 return cursor.rowcount > 0
         finally:
             pool.release(conn)
-

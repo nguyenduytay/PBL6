@@ -1,5 +1,5 @@
 """
-Pydantic Schemas - Request/Response validation schemas cho Analysis domain
+Pydantic Schemas - Request/Response validation schemas cho Analysis
 Schemas này dùng để validate input/output của API endpoints
 """
 from datetime import datetime
@@ -124,4 +124,3 @@ class AnalysisListItemResponse(BaseModel):
     
     class Config:
         from_attributes = True
-

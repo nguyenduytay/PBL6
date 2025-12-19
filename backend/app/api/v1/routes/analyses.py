@@ -11,11 +11,11 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from app.database.analysis_repository import AnalysisRepository
-from app.models.analysis import AnalysisResponse
+from app.services.analysis_service import AnalysisService
+from app.schemas.analysis import AnalysisResponse
 
 router = APIRouter()
-analysis_repo = AnalysisRepository()
+analysis_service = AnalysisService()
 
 @router.get("")
 async def get_analyses(
@@ -37,8 +37,8 @@ async def get_analyses(
         }
     """
     try:
-        analyses = await analysis_repo.get_all(limit=limit, offset=offset)
-        total = await analysis_repo.count_all()
+        analyses = await analysis_service.get_all(limit=limit, offset=offset)
+        total = await analysis_service.count_all()
         
         return {
             "items": analyses,
@@ -53,7 +53,7 @@ async def get_analyses(
 async def get_analysis(analysis_id: int):
     """Lấy chi tiết một analysis"""
     try:
-        analysis = await analysis_repo.get_by_id(analysis_id)
+        analysis = await analysis_service.get_by_id(analysis_id)
         if not analysis:
             raise HTTPException(status_code=404, detail="Analysis not found")
         return analysis
@@ -66,7 +66,7 @@ async def get_analysis(analysis_id: int):
 async def get_analysis_by_sha256(sha256: str):
     """Lấy analysis theo SHA256"""
     try:
-        analysis = await analysis_repo.get_by_sha256(sha256)
+        analysis = await analysis_service.get_by_sha256(sha256)
         if not analysis:
             raise HTTPException(status_code=404, detail="Analysis not found")
         return analysis
@@ -79,7 +79,7 @@ async def get_analysis_by_sha256(sha256: str):
 async def get_statistics():
     """Lấy thống kê tổng quan"""
     try:
-        stats = await analysis_repo.get_statistics()
+        stats = await analysis_service.get_statistics()
         return stats
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching statistics: {str(e)}")
@@ -89,12 +89,12 @@ async def delete_analysis(analysis_id: int):
     """Xóa một analysis"""
     try:
         # Kiểm tra analysis có tồn tại không
-        analysis = await analysis_repo.get_by_id(analysis_id)
+        analysis = await analysis_service.get_by_id(analysis_id)
         if not analysis:
             raise HTTPException(status_code=404, detail="Analysis not found")
         
         # Xóa analysis
-        deleted = await analysis_repo.delete(analysis_id)
+        deleted = await analysis_service.delete(analysis_id)
         if not deleted:
             raise HTTPException(status_code=500, detail="Failed to delete analysis")
         

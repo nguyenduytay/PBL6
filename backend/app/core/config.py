@@ -186,11 +186,14 @@ class Settings:
         
         if static_analyzer is None:
             try:
-                from src.Analysis.StaticAnalyzer import create_static_analyzer
-                settings = cls()
-                rules_path = str(settings.YARA_RULES_PATH) if settings.YARA_RULES_PATH.exists() else None
-                static_analyzer = create_static_analyzer(rules_path)
-                print("[OK] Static Analyzer initialized")
+                # Temporarily disabled - src folder was removed during refactoring
+                # from src.Analysis.StaticAnalyzer import create_static_analyzer
+                # settings = cls()
+                # rules_path = str(settings.YARA_RULES_PATH) if settings.YARA_RULES_PATH.exists() else None
+                # static_analyzer = create_static_analyzer(rules_path)
+                # print("[OK] Static Analyzer initialized")
+                print("[INFO] Static Analyzer disabled - src folder removed during refactoring")
+                static_analyzer = None
             except Exception as e:
                 print(f"[WARN] Failed to initialize Static Analyzer: {e}")
                 static_analyzer = None

@@ -17,7 +17,7 @@ from app.core.config import settings
 from app.services.yara_service import YaraService
 from app.services.hash_service import HashService
 from app.services.static_analyzer_service import StaticAnalyzerService
-from app.database.analysis_repository import AnalysisRepository
+from app.services.analysis_service import AnalysisService
 
 class AnalyzerService:
     """Service xử lý phân tích malware"""
@@ -26,7 +26,7 @@ class AnalyzerService:
         self.yara_service = YaraService()
         self.hash_service = HashService()
         self.static_analyzer_service = StaticAnalyzerService()
-        self.analysis_repo = AnalysisRepository()
+        self.analysis_service = AnalysisService()
     
     async def analyze_single_file(self, filepath: str) -> List[Dict[str, Any]]:
         """
@@ -112,7 +112,7 @@ class AnalyzerService:
         
         # Lưu vào database
         try:
-            analysis_id = await self.analysis_repo.create(analysis_data)
+            analysis_id = await self.analysis_service.create(analysis_data)
             analysis_data['id'] = analysis_id
             analysis_data['results'] = results
             return analysis_data

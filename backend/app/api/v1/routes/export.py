@@ -15,10 +15,10 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from app.database.analysis_repository import AnalysisRepository
+from app.services.analysis_service import AnalysisService
 
 router = APIRouter()
-analysis_repo = AnalysisRepository()
+analysis_service = AnalysisService()
 
 
 @router.get("/analyses/csv")
@@ -33,7 +33,7 @@ async def export_analyses_csv(
     - offset: Vị trí bắt đầu
     """
     try:
-        analyses = await analysis_repo.get_all(limit=limit, offset=offset)
+        analyses = await analysis_service.get_all(limit=limit, offset=offset)
         
         if not analyses:
             raise HTTPException(status_code=404, detail="No analyses found")
@@ -85,7 +85,7 @@ async def export_analyses_json(
     - offset: Starting position
     """
     try:
-        analyses = await analysis_repo.get_all(limit=limit, offset=offset)
+        analyses = await analysis_service.get_all(limit=limit, offset=offset)
         
         if not analyses:
             raise HTTPException(status_code=404, detail="No analyses found")
@@ -116,7 +116,7 @@ async def export_analyses_excel(
     - offset: Starting position
     """
     try:
-        analyses = await analysis_repo.get_all(limit=limit, offset=offset)
+        analyses = await analysis_service.get_all(limit=limit, offset=offset)
         
         if not analyses:
             raise HTTPException(status_code=404, detail="No analyses found")

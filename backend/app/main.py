@@ -26,12 +26,8 @@ from app.core.logging import setup_logging, get_logger
 # Setup logging
 logger = setup_logging(settings.LOG_LEVEL, settings.LOG_FILE)
 
-# Import database initialization - Fallback to old connection if infrastructure not available
-try:
-    from app.infrastructure.database import init_database
-except ImportError:
-    # Fallback to old database connection
-    from app.database.connection import init_db as init_database
+# Import database initialization
+from app.core.database import init_database
 
 # Initialize FastAPI app với metadata
 app = FastAPI(

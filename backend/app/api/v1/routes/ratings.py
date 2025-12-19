@@ -13,11 +13,11 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from app.database.analysis_repository import AnalysisRepository
+from app.services.analysis_service import AnalysisService
 from app.database.rating_repository import RatingRepository
 
 router = APIRouter()
-analysis_repo = AnalysisRepository()
+analysis_service = AnalysisService()
 rating_repo = RatingRepository()
 
 
@@ -72,7 +72,7 @@ async def create_rating(rating: RatingCreate):
     """
     try:
         # Kiểm tra analysis có tồn tại không
-        analysis = await analysis_repo.get_by_id(rating.analysis_id)
+        analysis = await analysis_service.get_by_id(rating.analysis_id)
         if not analysis:
             raise HTTPException(status_code=404, detail="Analysis not found")
         
@@ -127,7 +127,7 @@ async def get_ratings(
     """
     try:
         # Kiểm tra analysis có tồn tại không
-        analysis = await analysis_repo.get_by_id(analysis_id)
+        analysis = await analysis_service.get_by_id(analysis_id)
         if not analysis:
             raise HTTPException(status_code=404, detail="Analysis not found")
         
@@ -220,7 +220,7 @@ async def get_rating_stats(analysis_id: int):
     """
     try:
         # Kiểm tra analysis có tồn tại không
-        analysis = await analysis_repo.get_by_id(analysis_id)
+        analysis = await analysis_service.get_by_id(analysis_id)
         if not analysis:
             raise HTTPException(status_code=404, detail="Analysis not found")
         

@@ -18,11 +18,11 @@ if project_root not in sys.path:
 
 from app.core.config import settings
 from app.services.analyzer_service import AnalyzerService
-from app.database.analysis_repository import AnalysisRepository
+from app.services.analysis_service import AnalysisService
 
 router = APIRouter()
 analyzer_service = AnalyzerService()
-analysis_repo = AnalysisRepository()
+analysis_service = AnalysisService()
 
 # In-memory storage cho batch jobs (nên dùng Redis trong production)
 batch_jobs = {}
