@@ -128,12 +128,20 @@ async def init_database():
                         pe_info JSON,
                         suspicious_strings JSON,
                         capabilities JSON,
+                        results JSON,
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                         INDEX idx_sha256 (sha256),
                         INDEX idx_created_at (created_at),
                         INDEX idx_malware_detected (malware_detected)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """)
+                
+                # Thêm cột results nếu chưa có (migration)
+                try:
+                    await cursor.execute("ALTER TABLE analyses ADD COLUMN results JSON")
+                    print("[INFO] Added 'results' column to analyses table")
+                except Exception:
+                    pass  # Column đã tồn tại
                 
                 # Tạo bảng yara_matches
                 await cursor.execute("""

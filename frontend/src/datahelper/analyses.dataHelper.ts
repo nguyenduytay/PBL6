@@ -2,6 +2,7 @@
  * Analyses Data Helper - Type definitions for Analyses API
  */
 import { YaraMatch } from './common'
+import { ScanResultItem } from './scan.dataHelper'
 
 /**
  * Analysis List Item Response
@@ -26,7 +27,8 @@ export interface AnalysisListItemResponse {
  * Analysis Detail Response
  */
 export interface AnalysisDetailResponse extends AnalysisListItemResponse {
-  // Additional fields for detail view if needed
+  // Additional fields for detail view
+  results?: ScanResultItem[] // Chi tiết các phát hiện (Hash, YARA, EMBER)
 }
 
 /**

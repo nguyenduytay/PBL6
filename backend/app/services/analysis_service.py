@@ -38,8 +38,8 @@ class AnalysisService:
                     INSERT INTO analyses (
                         filename, sha256, md5, file_size, upload_time,
                         analysis_time, malware_detected, yara_matches,
-                        pe_info, suspicious_strings, capabilities
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        pe_info, suspicious_strings, capabilities, results
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
                 
                 values = (
@@ -53,7 +53,8 @@ class AnalysisService:
                     json.dumps(analysis_data.get('yara_matches', [])),
                     json.dumps(analysis_data.get('pe_info')) if analysis_data.get('pe_info') else None,
                     json.dumps(analysis_data.get('suspicious_strings', [])),
-                    json.dumps(analysis_data.get('capabilities', []))
+                    json.dumps(analysis_data.get('capabilities', [])),
+                    json.dumps(analysis_data.get('results', []))
                 )
                 
                 await cursor.execute(sql, values)
@@ -112,6 +113,10 @@ class AnalysisService:
                         row['suspicious_strings'] = json.loads(row['suspicious_strings'])
                     if row.get('capabilities'):
                         row['capabilities'] = json.loads(row['capabilities'])
+                    if row.get('results'):
+                        row['results'] = json.loads(row['results'])
+                    else:
+                        row['results'] = []
                     
                     # Get YARA matches
                     await cursor.execute("SELECT * FROM yara_matches WHERE analysis_id = %s", (analysis_id,))
@@ -191,6 +196,10 @@ class AnalysisService:
                         row['suspicious_strings'] = json.loads(row['suspicious_strings'])
                     if row.get('capabilities'):
                         row['capabilities'] = json.loads(row['capabilities'])
+                    if row.get('results'):
+                        row['results'] = json.loads(row['results'])
+                    else:
+                        row['results'] = []
                 
                 return row
         finally:

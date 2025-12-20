@@ -73,12 +73,20 @@ class AnalyzerService:
             
             # Luôn trả về kết quả EMBER (có score) dù có phát hiện malware hay không
             if ember_result.get("error"):
-                results.append({
+                error_detail = {
                     "type": "ember_error",
                     "message": f"[ERROR] EMBER prediction failed: {ember_result.get('error')}",
                     "score": 0.0,
                     "infoUrl": None
-                })
+                }
+                # Thêm chi tiết lỗi nếu có
+                if ember_result.get("error_detail"):
+                    error_detail["error_detail"] = ember_result.get("error_detail")
+                if ember_result.get("error_type"):
+                    error_detail["error_type"] = ember_result.get("error_type")
+                if ember_result.get("file_path"):
+                    error_detail["file_path"] = ember_result.get("file_path")
+                results.append(error_detail)
             elif ember_result.get("is_malware"):
                 results.append({
                     "type": "model",

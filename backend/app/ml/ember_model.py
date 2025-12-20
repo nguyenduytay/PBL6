@@ -5,7 +5,7 @@ Load và sử dụng EMBER model để dự đoán malware từ PE files
 import os
 import lightgbm as lgb
 import numpy as np
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 from pathlib import Path
 from app.ml.features import EmberFeatureExtractor
 
@@ -53,6 +53,40 @@ class EmberModel:
     def is_model_loaded(self) -> bool:
         """Kiểm tra model đã được load thành công chưa"""
         return self.model is not None
+    
+    def is_pe_file(self, file_path: str) -> Tuple[bool, Optional[str]]:
+        """
+        Kiểm tra xem file có phải PE file không bằng cách đọc MZ header
+        
+        Args:
+            file_path: Đường dẫn đến file cần kiểm tra
+            
+        Returns:
+            Tuple (is_pe: bool, error_detail: Optional[str])
+            - is_pe: True nếu file là PE (bắt đầu với 'MZ'), False nếu không
+            - error_detail: Chi tiết lỗi nếu có (None nếu không có lỗi)
+        """
+        try:
+            file_path_obj = Path(file_path)
+            if not file_path_obj.exists():
+                return False, f"File does not exist: {file_path}"
+            
+            file_size = file_path_obj.stat().st_size
+            if file_size < 2:
+                return False, f"File too small ({file_size} bytes). PE files must be at least 2 bytes (MZ header)."
+            
+            with open(file_path, 'rb') as f:
+                header = f.read(2)
+                # PE file bắt đầu với 'MZ' (0x4D5A)
+                if header == b'MZ':
+                    return True, None
+                else:
+                    header_hex = header.hex().upper() if len(header) == 2 else "N/A"
+                    return False, f"Invalid PE header. Expected 'MZ' (0x4D5A), got: {header_hex} (first 2 bytes: {header})"
+        except PermissionError as e:
+            return False, f"Permission denied: {str(e)}"
+        except Exception as e:
+            return False, f"Error reading file: {str(e)}"
 
     def predict(self, file_path: str) -> Dict[str, Any]:
         """
@@ -71,6 +105,21 @@ class EmberModel:
                 "is_malware": False, 
                 "score": 0.0,
                 "model_name": self.model_filename
+            }
+        
+        # Kiểm tra file có phải PE không (giống script test)
+        is_pe, pe_error_detail = self.is_pe_file(file_path)
+        if not is_pe:
+            error_msg = f"File is not a valid PE file. EMBER only analyzes PE files (Portable Executable: .exe, .dll, .sys, .scr, etc.). PE files must start with 'MZ' header."
+            if pe_error_detail:
+                error_msg += f" Details: {pe_error_detail}"
+            return {
+                "error": error_msg,
+                "error_detail": pe_error_detail,
+                "is_malware": False,
+                "score": 0.0,
+                "model_name": self.model_filename,
+                "file_path": str(file_path)
             }
             
         try:
@@ -95,13 +144,32 @@ class EmberModel:
             }
             
         except Exception as e:
-            print(f"[ERROR] EMBER prediction failed for {file_path}: {e}")
             import traceback
-            traceback.print_exc()
+            error_traceback = traceback.format_exc()
+            print(f"[ERROR] EMBER prediction failed for {file_path}: {e}")
+            print(error_traceback)
+            
+            # Phân loại lỗi chi tiết
+            error_type = type(e).__name__
+            error_message = str(e)
+            
+            # Kiểm tra các lỗi phổ biến
+            if "lief" in error_message.lower() or "bad_format" in error_message.lower():
+                error_detail = f"LIEF parsing error: File may be corrupted or not a valid PE file. {error_message}"
+            elif "numpy" in error_message.lower() or "shape" in error_message.lower():
+                error_detail = f"Feature extraction error: Invalid feature shape. {error_message}"
+            elif "lightgbm" in error_message.lower() or "model" in error_message.lower():
+                error_detail = f"Model prediction error: {error_message}"
+            else:
+                error_detail = error_message
+            
             return {
-                "error": str(e), 
+                "error": error_detail,
+                "error_type": error_type,
+                "error_traceback": error_traceback,
                 "is_malware": False, 
                 "score": 0.0,
-                "model_name": self.model_filename
+                "model_name": self.model_filename,
+                "file_path": str(file_path)
             }
 

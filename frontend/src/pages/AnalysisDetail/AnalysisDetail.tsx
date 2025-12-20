@@ -193,6 +193,159 @@ const AnalysisDetail: React.FC = () => {
         </Card>
       )}
 
+      {/* Detailed Results (YARA, EMBER, Errors) */}
+      {analysis.results && Array.isArray(analysis.results) && analysis.results.length > 0 && (
+        <Card 
+          title={t('upload.detailedResults')} 
+          subtitle={t('upload.detailedResultsSubtitle')}
+        >
+          <div className="space-y-3">
+            {analysis.results.map((item: any, index: number) => {
+              // EMBER Error
+              const isEmberError = item.type === 'ember_error' || 
+                                 (item.type === 'model' && item.subtype === 'ember' && item.error) ||
+                                 (item.error && item.error.toLowerCase().includes('ember'))
+              
+              if (isEmberError) {
+                return (
+                  <div
+                    key={index}
+                    className="p-4 bg-red-900/20 border border-red-600 rounded-lg"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-medium text-red-400 mb-1">
+                          {t('upload.emberError') || 'EMBER Error'}
+                        </p>
+                        <p className="text-sm text-red-300 mb-2">{item.message || item.error}</p>
+                        {item.error_detail && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            <span className="font-semibold">{t('upload.errorDetail')}:</span> {item.error_detail}
+                          </p>
+                        )}
+                        {item.error_type && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            <span className="font-semibold">{t('upload.errorType')}:</span> {item.error_type}
+                          </p>
+                        )}
+                        {item.file_path && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            <span className="font-semibold">{t('upload.file')}:</span> {item.file_path}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+              
+              // EMBER Result (Success)
+              const isEmberResult = (item.type === 'model' && item.subtype === 'ember') ||
+                                  (item.type === 'model' && item.score !== undefined)
+              
+              if (isEmberResult && !item.error) {
+                return (
+                  <div
+                    key={index}
+                    className={`p-4 rounded-lg border ${
+                      item.score && item.score > (item.threshold || 0.5)
+                        ? 'bg-yellow-900/20 border-yellow-600'
+                        : 'bg-green-900/20 border-green-600'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className={`font-medium mb-1 ${
+                          item.score && item.score > (item.threshold || 0.5)
+                            ? 'text-yellow-400'
+                            : 'text-green-400'
+                        }`}>
+                          {t('upload.emberResult') || 'EMBER Analysis'}
+                        </p>
+                        <p className="text-sm text-gray-300 mb-2">{item.message}</p>
+                        {item.score !== undefined && (
+                          <div className="mt-2 space-y-1">
+                            <p className="text-xs text-gray-400">
+                              <span className="font-semibold">{t('upload.score')}:</span> {item.score.toFixed(4)}
+                            </p>
+                            {item.threshold !== undefined && (
+                              <p className="text-xs text-gray-400">
+                                <span className="font-semibold">{t('upload.threshold')}:</span> {item.threshold.toFixed(4)}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+
+              // YARA Matches
+              if (item.type === 'yara') {
+                return (
+                  <div
+                    key={index}
+                    className="p-4 bg-yellow-900/20 border border-yellow-600 rounded-lg"
+                  >
+                    <p className="font-medium text-yellow-400 mb-1">
+                      {t('upload.yaraMatch') || 'YARA Match'}
+                    </p>
+                    <p className="text-sm text-gray-300">{item.message || item.matches}</p>
+                    {item.infoUrl && (
+                      <a 
+                        href={item.infoUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-400 hover:text-blue-300 mt-2 inline-block"
+                      >
+                        {t('upload.viewMore')}
+                      </a>
+                    )}
+                  </div>
+                )
+              }
+
+              // Hash results
+              if (item.type === 'hash') {
+                return (
+                  <div
+                    key={index}
+                    className="p-4 bg-blue-900/20 border border-blue-600 rounded-lg"
+                  >
+                    <p className="font-medium text-blue-400 mb-1">{t('upload.hashMatch')}</p>
+                    <p className="text-sm text-gray-300">{item.message}</p>
+                    {item.infoUrl && (
+                      <a 
+                        href={item.infoUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-400 hover:text-blue-300 mt-2 inline-block"
+                      >
+                        {t('upload.viewMore')}
+                      </a>
+                    )}
+                  </div>
+                )
+              }
+
+              // Other results
+              return (
+                <div
+                  key={index}
+                  className="p-4 bg-gray-800/50 border border-gray-600 rounded-lg"
+                >
+                  <p className="font-medium text-gray-300 mb-1">
+                    {item.type} {item.subtype ? `(${item.subtype})` : ''}
+                  </p>
+                  <p className="text-sm text-gray-400">{item.message || JSON.stringify(item)}</p>
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+      )}
+
       {/* Ratings */}
       <Card title={t('analysisDetail.ratings')} subtitle={t('analysisDetail.analysisRatings')}>
         {stats && (

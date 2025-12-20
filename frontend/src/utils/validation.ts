@@ -80,3 +80,36 @@ export const isNonNegativeNumber = (value: any): boolean => {
   return isValidNumber(value) && value >= 0
 }
 
+/**
+ * Check if file is a PE (Portable Executable) file
+ * PE files include: .exe, .dll, .sys, .scr, .drv, .ocx, .cpl, .efi, .com
+ * @param file - File object to check
+ * @returns Boolean indicating if file is a PE file
+ */
+export const isPEFile = (file: File): boolean => {
+  const peExtensions = ['exe', 'dll', 'sys', 'scr', 'drv', 'ocx', 'cpl', 'efi', 'com', 'msi', 'bin']
+  const extension = file.name.split('.').pop()?.toLowerCase() || ''
+  return peExtensions.includes(extension)
+}
+
+/**
+ * Validate file for EMBER scan (must be PE file)
+ * @param file - File object to validate
+ * @param getTranslation - Optional translation function. If not provided, returns English error.
+ * @returns Object with isValid boolean and error message if invalid
+ */
+export const validateFileForEmber = (
+  file: File, 
+  getTranslation?: (key: string) => string
+): { isValid: boolean; error?: string } => {
+  if (!isPEFile(file)) {
+    const errorKey = 'upload.emberPeOnly'
+    const error = getTranslation ? getTranslation(errorKey) : 'EMBER only supports PE files. Please select a PE file or use YARA scan.'
+    return {
+      isValid: false,
+      error
+    }
+  }
+  return { isValid: true }
+}
+

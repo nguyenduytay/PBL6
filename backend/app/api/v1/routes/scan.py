@@ -116,6 +116,7 @@ async def scan_ember(file: UploadFile = File(...)):
     - Sử dụng Machine Learning để phát hiện mẫu lạ
     - Phân tích file thực thi (PE Files) không cần signature
     - Chỉ chạy EMBER model, không chạy YARA hoặc hash check
+    - Chỉ chấp nhận file PE (Portable Executable): .exe, .dll, .sys, .scr, v.v.
     """
     # Kiểm tra tên file
     if not file.filename:
@@ -127,6 +128,19 @@ async def scan_ember(file: UploadFile = File(...)):
         f.write(await file.read())
     
     try:
+        # Kiểm tra file có phải PE không (validation giống script test)
+        from app.ml.ember_model import EmberModel
+        ember_model = EmberModel()
+        is_pe, pe_error_detail = ember_model.is_pe_file(str(filepath))
+        if not is_pe:
+            error_detail = "File is not a valid PE file. EMBER only analyzes PE files (Portable Executable: .exe, .dll, .sys, .scr, etc.). PE files must start with 'MZ' header."
+            if pe_error_detail:
+                error_detail += f" Details: {pe_error_detail}"
+            raise HTTPException(
+                status_code=400, 
+                detail=error_detail
+            )
+        
         # Chỉ quét bằng EMBER AI (không chạy Hash hay YARA)
         analysis_data = await analyzer_service.analyze_and_save(
             str(filepath), file.filename, scan_modules=["ember"]
@@ -145,8 +159,20 @@ async def scan_ember(file: UploadFile = File(...)):
             analysis_time=analysis_data.get("analysis_time", 0.0),
             results=analysis_data.get("results", [])  # Chứa kết quả EMBER
         )
+    except HTTPException:
+        # Re-raise HTTPException (đã được xử lý ở trên)
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"EMBER error: {str(e)}")
+        import traceback
+        error_traceback = traceback.format_exc()
+        error_detail = f"EMBER analysis error: {str(e)}"
+        # Log chi tiết lỗi
+        print(f"[ERROR] EMBER API error for {file.filename}:")
+        print(error_traceback)
+        raise HTTPException(
+            status_code=500, 
+            detail=f"{error_detail}. Check server logs for more details."
+        )
     finally:
         if filepath.exists(): os.remove(filepath)
 

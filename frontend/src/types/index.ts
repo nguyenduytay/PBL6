@@ -16,6 +16,19 @@ export interface Analysis {
   pe_info: PEInfo | null
   suspicious_strings: string[] | null
   capabilities: Record<string, any> | null
+  results?: Array<{
+    type: string
+    subtype?: string
+    message?: string
+    score?: number
+    threshold?: number
+    error?: string
+    error_detail?: string
+    error_type?: string
+    file_path?: string
+    infoUrl?: string | null
+    [key: string]: any
+  }>
   created_at: string
 }
 

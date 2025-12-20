@@ -17,6 +17,23 @@ export interface ScanFileRequest {
  */
 
 /**
+ * Scan result item - Chi tiết từng phát hiện (Hash, YARA, EMBER)
+ */
+export interface ScanResultItem {
+  type: string // 'hash', 'yara', 'model', 'ember_error', 'clean', etc.
+  subtype?: string // 'ember', etc.
+  message?: string
+  score?: number
+  threshold?: number
+  error?: string
+  error_detail?: string
+  error_type?: string
+  file_path?: string
+  infoUrl?: string | null
+  [key: string]: any
+}
+
+/**
  * Scan file response - POST /scan
  */
 export interface ScanResponse {
@@ -31,5 +48,6 @@ export interface ScanResponse {
   pe_info?: PEInfo
   suspicious_strings?: string[]
   capabilities?: Record<string, any>
+  results?: ScanResultItem[] // Chi tiết các phát hiện (Hash, YARA, EMBER)
 }
 

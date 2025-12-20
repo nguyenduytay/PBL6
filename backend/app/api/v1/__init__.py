@@ -2,7 +2,7 @@
 Module API v1 - Định nghĩa các routes chính của hệ thống
 """
 from fastapi import APIRouter
-from .routes import scan, health, websocket, analyses, batch_scan, search, export
+from .routes import scan, health, websocket, analyses, batch_scan, search, export, ratings
 
 api_router = APIRouter()
 
@@ -14,4 +14,5 @@ api_router.include_router(websocket.router, prefix="/ws", tags=["websocket"])
 api_router.include_router(analyses.router, prefix="/analyses", tags=["analyses"])
 api_router.include_router(search.router, prefix="/search", tags=["search"])
 api_router.include_router(export.router, prefix="/export", tags=["export"])
+api_router.include_router(ratings.router, prefix="/ratings", tags=["ratings"])
 

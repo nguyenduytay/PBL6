@@ -1,5 +1,5 @@
-# Core Dependencies - Chỉ các thư viện thực sự được sử dụng
-# File này chứa các dependencies tối thiểu cần thiết cho malware detection system
+# Requirements Clean - Chỉ các thư viện thực sự được sử dụng
+# Đã loại bỏ các thư viện không cần thiết
 
 # ============================================
 # Core Framework
@@ -23,26 +23,13 @@ psycopg2-binary==2.9.9
 # ============================================
 yara-python==4.5.4
 pefile==2023.2.7
+lief==0.17.0  # Cần cho ML features extraction
 
 # ============================================
-# Utilities
+# ML Features (EMBER Model)
 # ============================================
-python-dotenv==1.1.0
-requests==2.31.0
-beautifulsoup4==4.13.4
-
-# ============================================
-# Export Features
-# ============================================
-openpyxl==3.1.2
-et_xmlfile==2.0.0
-
-# ============================================
-# ML Features (Optional - chỉ dùng trong ml_service.py)
-# ============================================
-scikit-learn==1.6.1
-joblib==1.5.0
-threadpoolctl==3.6.0
+lightgbm==4.6.0  # EMBER model sử dụng LightGBM
+numpy==2.2.6  # Cần cho ML features
 
 # ============================================
 # Security & Authentication
@@ -51,6 +38,7 @@ bcrypt==4.3.0
 passlib==1.7.4
 cryptography==42.0.8
 pyOpenSSL==24.1.0
+python-jose[cryptography]==3.3.0  # Cần cho JWT trong security.py (jose package)
 
 # ============================================
 # HTTP & Networking
@@ -66,6 +54,19 @@ multidict==6.4.4
 yarl==1.20.0
 websockets==15.0.1
 websocket-client==1.8.0
+requests==2.31.0
+
+# ============================================
+# Utilities
+# ============================================
+python-dotenv==1.1.0
+beautifulsoup4==4.13.4
+
+# ============================================
+# Export Features
+# ============================================
+openpyxl==3.1.2
+et_xmlfile==2.0.0
 
 # ============================================
 # Data Processing
@@ -86,7 +87,6 @@ nest-asyncio==1.6.0
 # ============================================
 # Core Dependencies (Auto-installed)
 # ============================================
-# These are typically auto-installed but listed for clarity
 certifi==2025.1.31
 charset-normalizer==3.4.1
 idna==3.6
@@ -97,7 +97,6 @@ pytz==2025.2
 tzdata==2025.2
 six==1.17.0
 packaging==24.2
-setuptools==80.9.0
 zipp==3.21.0
 importlib_metadata==8.6.1
 importlib_resources==6.5.2
@@ -141,9 +140,4 @@ tqdm==4.67.1
 tenacity==9.1.2
 regex==2024.11.6
 soupsieve==2.6
-
-# ============================================
-# Optional: Nếu cần pandas cho CrawlData.py
-# ============================================
-# pandas==2.2.3  # Uncomment nếu cần dùng CrawlData.py
 
