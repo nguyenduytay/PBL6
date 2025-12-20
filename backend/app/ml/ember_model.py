@@ -5,6 +5,8 @@ Load và sử dụng EMBER model để dự đoán malware từ PE files
 import lightgbm as lgb  # type: ignore[import-untyped]
 import numpy as np  # type: ignore[import-untyped]
 import time
+import os
+import tempfile
 from typing import Dict, Any, Optional, Tuple
 from pathlib import Path
 from app.ml.features import EmberFeatureExtractor
@@ -53,19 +55,41 @@ class EmberModel:
                 print(f"[WARN] EMBER model file not found at {self.model_path}")
                 return
             
-            print(f"[INFO] Loading EMBER model from {self.model_path}...")
-            print(f"[INFO] Model file size: {self.model_path.stat().st_size / (1024*1024):.2f} MB")
-            
-            self.model = lgb.Booster(model_file=str(self.model_path))
+            # Thử load model
+            try:
+                self.model = lgb.Booster(model_file=str(self.model_path))
+            except Exception as e1:
+                # Thử normalize line endings nếu cần
+                try:
+                    with open(self.model_path, 'rb') as f:
+                        content = f.read()
+                    if b'\r\n' in content:
+                        content = content.replace(b'\r\n', b'\n')
+                        with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.txt') as tmp_file:
+                            tmp_file.write(content)
+                            tmp_path = tmp_file.name
+                        try:
+                            self.model = lgb.Booster(model_file=tmp_path)
+                        finally:
+                            try:
+                                os.unlink(tmp_path)
+                            except:
+                                pass
+                    else:
+                        raise e1
+                except Exception as e2:
+                    print(f"[ERROR] Failed to load EMBER model: {e2}")
+                    raise e2
             
             elapsed = time.time() - start_time
-            print(f"[INFO] EMBER model loaded successfully in {elapsed:.2f}s")
-            print(f"[INFO] Model name: {self.model_filename}")
-            print(f"[INFO] Threshold: {self.threshold}")
+            print(f"[INFO] EMBER model loaded in {elapsed:.2f}s")
             
         except Exception as e:
             elapsed = time.time() - start_time
+            import traceback
+            error_traceback = traceback.format_exc()
             print(f"[ERROR] Failed to load EMBER model after {elapsed:.2f}s: {e}")
+            print(f"[ERROR] Traceback: {error_traceback}")
             self.model = None
     
     def is_model_loaded(self) -> bool:
@@ -80,12 +104,26 @@ class EmberModel:
                 return False, f"File does not exist: {file_path}"
             
             file_size = file_path_obj.stat().st_size
-            if file_size < 2:
-                return False, f"File too small ({file_size} bytes)"
+            if file_size < 64:
+                return False, f"File too small ({file_size} bytes). PE files must be at least 64 bytes"
             
             with open(file_path, 'rb') as f:
                 header = f.read(2)
                 if header == b'MZ':
+                    # Kiểm tra thêm: đọc offset đến PE header (offset 0x3C)
+                    f.seek(0x3C)
+                    pe_offset_bytes = f.read(4)
+                    if len(pe_offset_bytes) == 4:
+                        pe_offset = int.from_bytes(pe_offset_bytes, byteorder='little')
+                        # Kiểm tra offset hợp lệ (phải < file_size)
+                        if pe_offset < file_size and pe_offset > 0:
+                            f.seek(pe_offset)
+                            pe_signature = f.read(2)
+                            if pe_signature == b'PE':
+                                return True, None
+                            else:
+                                return False, f"Invalid PE signature at offset {pe_offset}. Expected 'PE', got: {pe_signature.hex().upper()}"
+                    # Nếu không đọc được PE offset, vẫn coi là PE nếu có MZ header
                     return True, None
                 else:
                     header_hex = header.hex().upper() if len(header) == 2 else "N/A"
@@ -123,22 +161,60 @@ class EmberModel:
             with open(file_path, "rb") as f:
                 bytez = f.read()
             
-            features = self.extractor.feature_vector(bytez)
-            
-            # Kiểm tra và pad features nếu thiếu
-            if len(features) != 2381:
-                if len(features) < 2381:
-                    padding_size = 2381 - len(features)
-                    padding = np.zeros(padding_size, dtype=np.float32)
-                    features = np.concatenate([features, padding])
-                    print(f"[WARN] Padded {padding_size} zeros to match model dimensions")
-                else:
-                    truncated_count = len(features) - 2381
-                    features = features[:2381]
-                    print(f"[WARN] Truncated {truncated_count} features to match model dimensions")
-            
-            features = features.reshape(1, -1)
-            score = self.model.predict(features, predict_disable_shape_check=True)[0]
+            # Sử dụng ember.predict_sample() - cách chính thức
+            try:
+                import ember
+                if self.model is None:
+                    raise ValueError("Model not loaded")
+                
+                score = ember.predict_sample(self.model, bytez, feature_version=2)
+                score = float(score)
+                
+                # Kiểm tra score = 0.0 có phải do lỗi không
+                if score == 0.0:
+                    test_features = self.extractor.feature_vector(bytez)
+                    if np.all(test_features == 0):
+                        return {
+                            "error": "Score is 0.0 and feature vector is all zeros - extraction likely failed",
+                            "is_malware": False,
+                            "score": 0.0,
+                            "model_name": self.model_filename,
+                            "file_path": str(file_path)
+                        }
+                    
+            except (ImportError, Exception) as err:
+                # Fallback: extract features trực tiếp
+                features = self.extractor.feature_vector(bytez)
+                
+                if features is None or len(features) == 0:
+                    return {
+                        "error": "Feature extraction returned empty vector",
+                        "is_malware": False,
+                        "score": 0.0,
+                        "model_name": self.model_filename,
+                        "file_path": str(file_path)
+                    }
+                
+                if np.all(features == 0):
+                    return {
+                        "error": "Feature vector contains only zeros - extraction likely failed",
+                        "is_malware": False,
+                        "score": 0.0,
+                        "model_name": self.model_filename,
+                        "file_path": str(file_path)
+                    }
+                
+                # Pad/truncate features nếu cần
+                if len(features) != 2381:
+                    if len(features) < 2381:
+                        padding = np.zeros(2381 - len(features), dtype=np.float32)
+                        features = np.concatenate([features, padding])
+                    else:
+                        features = features[:2381]
+                
+                features = np.array(features, dtype=np.float32)
+                score = self.model.predict([features])[0]
+                score = float(score)
             
             return {
                 "score": float(score),
@@ -148,11 +224,6 @@ class EmberModel:
             }
             
         except Exception as e:
-            import traceback
-            error_traceback = traceback.format_exc()
-            print(f"[ERROR] EMBER prediction failed for {file_path}: {e}")
-            print(error_traceback)
-            
             error_type = type(e).__name__
             error_message = str(e)
             
@@ -165,10 +236,11 @@ class EmberModel:
             else:
                 error_detail = error_message
             
+            print(f"[ERROR] EMBER prediction failed: {error_detail}")
+            
             return {
                 "error": error_detail,
                 "error_type": error_type,
-                "error_traceback": error_traceback,
                 "is_malware": False, 
                 "score": 0.0,
                 "model_name": self.model_filename,

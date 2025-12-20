@@ -60,14 +60,32 @@ class EmberFeatureExtractor:
 
     def feature_vector(self, bytez: bytes) -> np.ndarray:
         """Trích xuất 2381 features từ file PE"""
-        if self._extractor:
-            try:
-                features = self._extractor.feature_vector(bytez)
-                return np.array(features, dtype=np.float32)
-            except Exception as e:
-                print(f"[WARN] Error using ember extractor: {e}, using fallback")
-                return np.zeros(self.dim, dtype=np.float32)
+        if self._extractor is None:
+            error_msg = "EMBER extractor not available - ember library not loaded"
+            print(f"[ERROR] {error_msg}")
+            raise RuntimeError(error_msg)
         
-        print(f"[WARN] ember extractor not available, returning zero vector")
-        return np.zeros(self.dim, dtype=np.float32)
+        try:
+            features = self._extractor.feature_vector(bytez)
+            features_array = np.array(features, dtype=np.float32)
+            
+            # Kiểm tra features có hợp lệ không
+            if features_array is None or len(features_array) == 0:
+                raise ValueError("Feature extraction returned empty array")
+            
+            # Kiểm tra features có toàn số 0 không (có thể do lỗi)
+            if np.all(features_array == 0):
+                print(f"[WARN] Feature vector contains only zeros - this may indicate extraction error")
+                print(f"[WARN] File may not be a valid PE file or extraction failed")
+                # Vẫn trả về nhưng có warning - để model tự quyết định
+            
+            return features_array
+            
+        except Exception as e:
+            import traceback
+            error_msg = f"Error extracting features: {str(e)}"
+            print(f"[ERROR] {error_msg}")
+            print(f"[ERROR] Traceback: {traceback.format_exc()}")
+            # Không trả về zero vector - throw exception để caller xử lý
+            raise RuntimeError(error_msg) from e
 

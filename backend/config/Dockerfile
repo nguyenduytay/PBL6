@@ -34,6 +34,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Context là .. (backend/), nên models/ = backend/models/
 COPY models/ models/
 
+# Normalize line endings cho file model (CRLF -> LF) để tương thích với Linux
+# LightGBM model files cần LF line endings trong Linux
+RUN if [ -f models/ember_model_2018.txt ]; then \
+        sed -i 's/\r$//' models/ember_model_2018.txt || true; \
+        echo "[INFO] Normalized line endings for EMBER model file"; \
+    fi
+
 # Sao chép toàn bộ mã nguồn vào container
 COPY . .
 

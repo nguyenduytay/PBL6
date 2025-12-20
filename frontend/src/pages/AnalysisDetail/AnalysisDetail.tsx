@@ -476,7 +476,14 @@ const AnalysisDetail: React.FC = () => {
                         {item.score !== undefined && (
                           <div className="mt-2 space-y-1">
                             <p className="text-xs text-gray-400">
-                              <span className="font-semibold">{t('upload.score')}:</span> {item.score.toFixed(4)}
+                              <span className="font-semibold">{t('upload.score')}:</span> {
+                                item.score < 0.0001 
+                                  ? item.score.toExponential(2) 
+                                  : item.score.toFixed(6)
+                              }
+                              {item.score === 0 && (
+                                <span className="text-yellow-400 ml-2">(Very clean file)</span>
+                              )}
                             </p>
                             {item.threshold !== undefined && (
                               <p className="text-xs text-gray-400">
