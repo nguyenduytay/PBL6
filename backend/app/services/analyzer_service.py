@@ -13,10 +13,13 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from app.core.config import settings
+from app.core.logging import get_logger
 from app.services.yara_service import YaraService
 from app.services.hash_service import HashService
 from app.services.static_analyzer_service import StaticAnalyzerService
 from app.services.analysis_service import AnalysisService
+
+logger = get_logger("analyzer_service")
 # Sử dụng ML module mới
 from app.ml.ember_model import EmberModel
 
@@ -180,11 +183,21 @@ class AnalyzerService:
         
         # Lưu vào database
         try:
+            logger.info(f"Attempting to save analysis for {filename} to database...")
             analysis_id = await self.analysis_service.create(analysis_data)
-            analysis_data['id'] = analysis_id
-            return analysis_data
+            
+            if analysis_id:
+                analysis_data['id'] = analysis_id
+                logger.info(f"Successfully saved analysis {analysis_id} for {filename} to database")
+                return analysis_data
+            else:
+                logger.warning(f"Failed to save analysis for {filename} to database - analysis_id is None")
+                # Vẫn trả về kết quả dù không lưu được
+                analysis_data['results'] = results
+                return analysis_data
+                
         except Exception as e:
-            print(f"[WARN] Failed to save analysis to database: {e}")
+            logger.error(f"Exception while saving analysis for {filename} to database: {e}", exc_info=True)
             # Vẫn trả về kết quả dù không lưu được
             analysis_data['results'] = results
             return analysis_data

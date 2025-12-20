@@ -120,7 +120,7 @@ const AnalysisDetail: React.FC = () => {
       </Card>
 
       {/* Scan Information */}
-      {(analysis.yara_matches && analysis.yara_matches.length > 0) && (
+      {(analysis.yara_matches && Array.isArray(analysis.yara_matches) && analysis.yara_matches.length > 0) && (
         <Card title={t('analysisDetail.scanInfo')} subtitle={t('analysisDetail.yaraMatchInfo')}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -136,14 +136,25 @@ const AnalysisDetail: React.FC = () => {
       )}
 
       {/* YARA Matches */}
-      {analysis.yara_matches && analysis.yara_matches.length > 0 && (
+      {analysis.yara_matches && Array.isArray(analysis.yara_matches) && analysis.yara_matches.length > 0 && (
         <>
           <Card
             title={`${t('analysisDetail.yaraMatches')} (${analysis.yara_matches.length})`}
             subtitle={t('analysisDetail.yaraMatchInfo')}
           >
             <div className="space-y-3">
-              {analysis.yara_matches.map((match, index) => {
+              {analysis.yara_matches.map((match: any, index: number) => {
+                // Defensive checks - ensure match is an object
+                if (!match || typeof match !== 'object') {
+                  return null
+                }
+                
+                // Ensure rule_name exists - có thể là rule_name hoặc rule
+                const ruleName = match.rule_name || match.rule || `Rule ${index + 1}`
+                if (!ruleName) {
+                  return null
+                }
+                
                 // Handle tags - can be array or string
                 let tags: string[] = []
                 if (match.tags) {
@@ -154,14 +165,17 @@ const AnalysisDetail: React.FC = () => {
                   }
                 }
                 
+                // Ensure matched_strings is an array
+                const matchedStrings = Array.isArray(match.matched_strings) ? match.matched_strings : []
+                
                 return (
                   <div
-                    key={index}
+                    key={match.id || index}
                     className="p-4 bg-yellow-900/20 border border-yellow-600 rounded-lg"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
-                        <p className="font-medium text-yellow-400">{match.rule_name}</p>
+                        <p className="font-medium text-yellow-400">{ruleName}</p>
                         {match.description && (
                           <p className="text-sm text-gray-400 mt-1">{match.description}</p>
                         )}
@@ -193,19 +207,24 @@ const AnalysisDetail: React.FC = () => {
                         ))}
                       </div>
                     )}
-                    {match.matched_strings && match.matched_strings.length > 0 && (
+                    {matchedStrings.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-yellow-700/50">
                         <p className="text-xs font-semibold text-gray-400 mb-2">
-                          {t('analysisDetail.matchedStrings')} ({match.matched_strings.length}):
+                          {t('analysisDetail.matchedStrings')} ({matchedStrings.length}):
                         </p>
                         <div className="space-y-1 max-h-40 overflow-y-auto">
-                          {match.matched_strings.slice(0, 10).map((str: any, strIndex: number) => (
+                          {matchedStrings.slice(0, 10).map((str: any, strIndex: number) => {
+                            // Defensive check for string object
+                            if (!str || typeof str !== 'object') {
+                              return null
+                            }
+                            return (
                             <div key={strIndex} className="text-xs bg-gray-800/50 p-2 rounded">
                               {str.identifier && (
                                 <span className="text-yellow-300 font-mono">{str.identifier}</span>
                               )}
-                              {str.offset !== undefined && (
-                                <span className="text-gray-500 ml-2">@0x{str.offset.toString(16)}</span>
+                              {str.offset !== undefined && str.offset !== null && (
+                                <span className="text-gray-500 ml-2">@0x{Number(str.offset).toString(16)}</span>
                               )}
                               {str.data_preview && (
                                 <code className="block text-gray-300 mt-1 break-all">
@@ -213,10 +232,11 @@ const AnalysisDetail: React.FC = () => {
                                 </code>
                               )}
                             </div>
-                          ))}
-                          {match.matched_strings.length > 10 && (
+                            )
+                          })}
+                          {matchedStrings.length > 10 && (
                             <p className="text-xs text-gray-500 text-center">
-                              {t('analysisDetail.andMoreMatchedStrings', { count: match.matched_strings.length - 10 })}
+                              {t('analysisDetail.andMoreMatchedStrings', { count: matchedStrings.length - 10 })}
                             </p>
                           )}
                         </div>
@@ -350,6 +370,7 @@ const AnalysisDetail: React.FC = () => {
 
       {/* Suspicious Strings */}
       {analysis.suspicious_strings &&
+        Array.isArray(analysis.suspicious_strings) &&
         analysis.suspicious_strings.length > 0 && (
           <Card
             title={`${t('analysisDetail.suspiciousStrings')} (${analysis.suspicious_strings.length})`}

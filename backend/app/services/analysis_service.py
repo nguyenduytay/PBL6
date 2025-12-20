@@ -3,9 +3,13 @@ Analysis Service - CRUD operations cho analyses
 Quản lý lưu trữ, tìm kiếm, thống kê các kết quả phân tích malware
 """
 import json
+import traceback
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 import aiomysql  # type: ignore[import-untyped]
+from app.core.logging import get_logger
+
+logger = get_logger("analysis_service")
 
 
 class AnalysisService:
@@ -24,11 +28,15 @@ class AnalysisService:
         """
         from app.core.database import get_db_connection
         
+        pool = None
+        conn = None
+        
         try:
             pool = await get_db_connection()
             conn = await pool.acquire()
+            logger.info(f"Creating analysis for file: {analysis_data.get('filename')}")
         except Exception as e:
-            print(f"[WARN] Cannot get database connection: {e}")
+            logger.error(f"Cannot get database connection: {e}", exc_info=True)
             return None
         
         try:
@@ -59,11 +67,12 @@ class AnalysisService:
                 
                 await cursor.execute(sql, values)
                 analysis_id = cursor.lastrowid
+                logger.debug(f"Inserted analysis with ID: {analysis_id}")
                 
                 # Insert YARA matches
-                import json
                 yara_matches = analysis_data.get('yara_matches', [])
                 if yara_matches and analysis_id:
+                    match_count = 0
                     for match in yara_matches:
                         if isinstance(match, dict):
                             match_sql = """
@@ -86,23 +95,48 @@ class AnalysisService:
                                 reference,
                                 matched_strings
                             ))
+                            match_count += 1
+                    logger.debug(f"Inserted {match_count} YARA matches for analysis {analysis_id}")
                 
                 await conn.commit()
+                logger.info(f"Successfully saved analysis {analysis_id} to database")
                 return analysis_id
                 
+        except Exception as e:
+            # Rollback transaction nếu có lỗi
+            if conn:
+                try:
+                    await conn.rollback()
+                    logger.warning(f"Rolled back transaction due to error: {e}")
+                except:
+                    pass
+            
+            logger.error(f"Failed to save analysis to database: {e}", exc_info=True)
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return None
+                
         finally:
-            pool.release(conn)
+            # Release connection về pool
+            if pool and conn:
+                try:
+                    pool.release(conn)
+                except Exception as e:
+                    logger.warning(f"Error releasing connection: {e}")
     
     @staticmethod
     async def get_by_id(analysis_id: int) -> Optional[Dict[str, Any]]:
         """Lấy analysis theo ID"""
         from app.core.database import get_db_connection
         
+        pool = None
+        conn = None
+        
         try:
             pool = await get_db_connection()
             conn = await pool.acquire()
+            logger.debug(f"Fetching analysis {analysis_id} from database")
         except Exception as e:
-            print(f"[WARN] Cannot get database connection: {e}")
+            logger.error(f"Cannot get database connection: {e}", exc_info=True)
             return None
         
         try:
@@ -110,50 +144,141 @@ class AnalysisService:
                 await cursor.execute("SELECT * FROM analyses WHERE id = %s", (analysis_id,))
                 row = await cursor.fetchone()
                 
-                if row:
-                    # Parse JSON fields
-                    if row.get('yara_matches'):
+                if not row:
+                    logger.warning(f"Analysis {analysis_id} not found in database")
+                    return None
+                
+                # Parse JSON fields với exception handling
+                # Parse yara_matches từ analyses table (tạm thời, sẽ được thay bằng yara_matches từ bảng riêng)
+                if row.get('yara_matches'):
+                    try:
                         row['yara_matches'] = json.loads(row['yara_matches'])
-                    if row.get('pe_info'):
+                    except (json.JSONDecodeError, TypeError) as e:
+                        logger.warning(f"Failed to parse yara_matches from analyses table for analysis {analysis_id}: {e}")
+                        row['yara_matches'] = []
+                else:
+                    row['yara_matches'] = []
+                
+                # Parse pe_info
+                if row.get('pe_info'):
+                    try:
                         row['pe_info'] = json.loads(row['pe_info'])
-                    if row.get('suspicious_strings'):
+                    except (json.JSONDecodeError, TypeError) as e:
+                        logger.warning(f"Failed to parse pe_info for analysis {analysis_id}: {e}")
+                        row['pe_info'] = None
+                
+                # Parse suspicious_strings
+                if row.get('suspicious_strings'):
+                    try:
                         row['suspicious_strings'] = json.loads(row['suspicious_strings'])
-                    if row.get('capabilities'):
+                    except (json.JSONDecodeError, TypeError) as e:
+                        logger.warning(f"Failed to parse suspicious_strings for analysis {analysis_id}: {e}")
+                        row['suspicious_strings'] = []
+                else:
+                    row['suspicious_strings'] = []
+                
+                # Parse capabilities
+                if row.get('capabilities'):
+                    try:
                         row['capabilities'] = json.loads(row['capabilities'])
-                    if row.get('results'):
+                    except (json.JSONDecodeError, TypeError) as e:
+                        logger.warning(f"Failed to parse capabilities for analysis {analysis_id}: {e}")
+                        row['capabilities'] = []
+                else:
+                    row['capabilities'] = []
+                
+                # Parse results
+                if row.get('results'):
+                    try:
                         row['results'] = json.loads(row['results'])
-                    else:
+                    except (json.JSONDecodeError, TypeError) as e:
+                        logger.warning(f"Failed to parse results for analysis {analysis_id}: {e}")
                         row['results'] = []
-                    
-                    # Get YARA matches với matched strings
+                else:
+                    row['results'] = []
+                
+                # Get YARA matches với matched strings từ bảng riêng
+                try:
                     await cursor.execute("SELECT * FROM yara_matches WHERE analysis_id = %s", (analysis_id,))
                     yara_matches = await cursor.fetchall()
-                    # Parse matched_strings JSON
+                    
+                    # Parse matched_strings JSON và tags
                     for match in yara_matches:
+                        # Parse matched_strings
                         if match.get('matched_strings'):
                             try:
                                 match['matched_strings'] = json.loads(match['matched_strings'])
-                            except:
+                            except (json.JSONDecodeError, TypeError) as e:
+                                logger.warning(f"Failed to parse matched_strings for YARA match {match.get('id')}: {e}")
                                 match['matched_strings'] = []
+                        else:
+                            match['matched_strings'] = []
+                        
                         # Parse tags nếu là string
-                        if match.get('tags') and isinstance(match['tags'], str):
-                            match['tags'] = [t.strip() for t in match['tags'].split(',') if t.strip()]
-                    row['yara_matches'] = yara_matches
+                        if match.get('tags'):
+                            if isinstance(match['tags'], str):
+                                match['tags'] = [t.strip() for t in match['tags'].split(',') if t.strip()]
+                            elif not isinstance(match['tags'], list):
+                                match['tags'] = []
+                        else:
+                            match['tags'] = []
+                    
+                    # Thay thế yara_matches từ analyses table bằng yara_matches từ bảng riêng
+                    # Đảm bảo yara_matches luôn là list
+                    row['yara_matches'] = yara_matches if isinstance(yara_matches, list) else []
+                    logger.debug(f"Found {len(yara_matches)} YARA matches for analysis {analysis_id}")
+                    
+                except Exception as e:
+                    logger.warning(f"Error fetching YARA matches for analysis {analysis_id}: {e}")
+                    # Đảm bảo yara_matches luôn là list ngay cả khi có lỗi
+                    if not isinstance(row.get('yara_matches'), list):
+                        row['yara_matches'] = []
                 
+                # Đảm bảo tất cả các fields quan trọng đều có giá trị hợp lệ
+                # Validate và set defaults cho các fields có thể null
+                if not isinstance(row.get('yara_matches'), list):
+                    row['yara_matches'] = []
+                if not isinstance(row.get('suspicious_strings'), list):
+                    row['suspicious_strings'] = []
+                if not isinstance(row.get('capabilities'), list):
+                    row['capabilities'] = []
+                if not isinstance(row.get('results'), list):
+                    row['results'] = []
+                
+                # Đảm bảo các fields string không phải None
+                if row.get('filename') is None:
+                    row['filename'] = ''
+                if row.get('sha256') is None:
+                    row['sha256'] = None  # Có thể null
+                if row.get('md5') is None:
+                    row['md5'] = None  # Có thể null
+                
+                logger.info(f"Successfully retrieved analysis {analysis_id} from database")
                 return row
+                
+        except Exception as e:
+            logger.error(f"Error fetching analysis {analysis_id}: {e}", exc_info=True)
+            return None
         finally:
-            pool.release(conn)
+            if pool and conn:
+                try:
+                    pool.release(conn)
+                except Exception as e:
+                    logger.warning(f"Error releasing connection: {e}")
     
     @staticmethod
     async def get_all(limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
         """Lấy tất cả analyses với pagination"""
         from app.core.database import get_db_connection
         
+        pool = None
+        conn = None
+        
         try:
             pool = await get_db_connection()
             conn = await pool.acquire()
         except Exception as e:
-            print(f"[WARN] Cannot get database connection: {e}")
+            logger.error(f"Cannot get database connection: {e}", exc_info=True)
             return []
         
         try:
@@ -166,20 +291,68 @@ class AnalysisService:
                 
                 rows = await cursor.fetchall()
                 
-                # Parse JSON fields
+                # Parse JSON fields với exception handling
                 for row in rows:
+                    # Parse yara_matches
                     if row.get('yara_matches'):
-                        row['yara_matches'] = json.loads(row['yara_matches'])
+                        try:
+                            row['yara_matches'] = json.loads(row['yara_matches'])
+                        except (json.JSONDecodeError, TypeError) as e:
+                            logger.warning(f"Failed to parse yara_matches for analysis {row.get('id')}: {e}")
+                            row['yara_matches'] = []
+                    else:
+                        row['yara_matches'] = []
+                    
+                    # Parse pe_info
                     if row.get('pe_info'):
-                        row['pe_info'] = json.loads(row['pe_info'])
+                        try:
+                            row['pe_info'] = json.loads(row['pe_info'])
+                        except (json.JSONDecodeError, TypeError) as e:
+                            logger.warning(f"Failed to parse pe_info for analysis {row.get('id')}: {e}")
+                            row['pe_info'] = None
+                    
+                    # Parse suspicious_strings
                     if row.get('suspicious_strings'):
-                        row['suspicious_strings'] = json.loads(row['suspicious_strings'])
+                        try:
+                            row['suspicious_strings'] = json.loads(row['suspicious_strings'])
+                        except (json.JSONDecodeError, TypeError) as e:
+                            logger.warning(f"Failed to parse suspicious_strings for analysis {row.get('id')}: {e}")
+                            row['suspicious_strings'] = []
+                    else:
+                        row['suspicious_strings'] = []
+                    
+                    # Parse capabilities
                     if row.get('capabilities'):
-                        row['capabilities'] = json.loads(row['capabilities'])
+                        try:
+                            row['capabilities'] = json.loads(row['capabilities'])
+                        except (json.JSONDecodeError, TypeError) as e:
+                            logger.warning(f"Failed to parse capabilities for analysis {row.get('id')}: {e}")
+                            row['capabilities'] = []
+                    else:
+                        row['capabilities'] = []
+                    
+                    # Parse results (nếu có)
+                    if row.get('results'):
+                        try:
+                            row['results'] = json.loads(row['results'])
+                        except (json.JSONDecodeError, TypeError) as e:
+                            logger.warning(f"Failed to parse results for analysis {row.get('id')}: {e}")
+                            row['results'] = []
+                    else:
+                        row['results'] = []
                 
+                logger.debug(f"Retrieved {len(rows)} analyses from database")
                 return rows
+                
+        except Exception as e:
+            logger.error(f"Error fetching analyses: {e}", exc_info=True)
+            return []
         finally:
-            pool.release(conn)
+            if pool and conn:
+                try:
+                    pool.release(conn)
+                except Exception as e:
+                    logger.warning(f"Error releasing connection: {e}")
     
     @staticmethod
     async def get_by_sha256(sha256: str) -> Optional[Dict[str, Any]]:
