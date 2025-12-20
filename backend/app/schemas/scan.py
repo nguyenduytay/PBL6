@@ -35,4 +35,5 @@ class ScanResult(BaseModel):
     capabilities: List[Dict[str, Any]] = Field(default_factory=list)
     malware_detected: bool = False
     analysis_time: float = 0.0
+    results: List[Dict[str, Any]] = Field(default_factory=list, description="Chi tiết các phát hiện (Hash, Yara, EMBER)")
 

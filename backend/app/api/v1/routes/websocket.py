@@ -1,5 +1,5 @@
 """
-WebSocket endpoints - Real-time progress updates
+WebSocket - Cập nhật tiến trình thời gian thực
 """
 import asyncio
 from fastapi import APIRouter, WebSocket

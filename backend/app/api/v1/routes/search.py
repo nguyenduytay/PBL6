@@ -27,24 +27,15 @@ async def search_analyses(
     offset: int = Query(0, ge=0)
 ):
     """
-    Search analyses by filename, SHA256, or MD5 with pagination
+    Tìm kiếm kết quả phân tích theo tên file, SHA256, hoặc MD5
     
-    - q: Search keyword (searches in filename, SHA256, MD5)
-    - limit: Number of results (1-100)
-    - offset: Starting position for pagination
+    - q: Từ khóa tìm kiếm (tên file, SHA256, MD5)
+    - limit: Số lượng kết quả (1-100)
+    - offset: Vị trí bắt đầu
     
-    Returns:
-        {
-            "items": List[AnalysisResponse],
-            "total": int,
-            "limit": int,
-            "offset": int
-        }
-    
-    Examples:
-    - Search by filename: q=test.exe
-    - Search by SHA256: q=abc123...
-    - Search by MD5: q=def456...
+    Ví dụ:
+    - Tìm theo tên: q=test.exe
+    - Tìm theo hash: q=abc123...
     """
     try:
         if not q or not q.strip():
@@ -52,12 +43,12 @@ async def search_analyses(
         
         query = q.strip()
         
-        # Get results and total count
-        results = await analysis_service.search(query, limit=limit, offset=offset)
-        total = await analysis_service.count_search(query)
+        # Lấy kết quả và tổng số lượng khớp
+        results = await analysis_repo.search(query, limit=limit, offset=offset)
+        total = await analysis_repo.count_search(query)
         
         if not results:
-            # Return empty list if no results
+            # Trả về danh sách trống nếu không tìm thấy
             return {
                 "items": [],
                 "total": 0,
@@ -65,11 +56,11 @@ async def search_analyses(
                 "offset": offset
             }
         
-        # Convert to response model, handle missing fields
+        # Chuyển đổi sang model response, xử lý các trường thiếu
         response_list = []
         for r in results:
             try:
-                # Parse datetime fields if they are strings
+                # Xử lý các trường thời gian nếu là chuỗi
                 created_at = r.get('created_at')
                 if isinstance(created_at, str):
                     try:
@@ -86,7 +77,7 @@ async def search_analyses(
                     except:
                         upload_time = None
                 
-                # Ensure all required fields are present
+                # Đảm bảo tất cả các trường bắt buộc đều có dữ liệu
                 response_data = {
                     'id': r.get('id'),
                     'filename': r.get('filename', ''),
@@ -104,7 +95,7 @@ async def search_analyses(
                 }
                 response_list.append(AnalysisResponse(**response_data))
             except Exception as e:
-                # Skip invalid results but log for debugging
+                # Bỏ qua kết quả không hợp lệ và in lỗi để debug
                 import traceback
                 traceback.print_exc()
                 continue

@@ -1,5 +1,5 @@
 """
-Export endpoints - Export analyses data
+Export endpoints - Xuất dữ liệu phân tích ra các định dạng khác nhau
 """
 import os
 import sys
@@ -79,10 +79,10 @@ async def export_analyses_json(
     offset: int = Query(0, ge=0)
 ):
     """
-    Export analyses to JSON
+    Xuất dữ liệu ra JSON
     
-    - limit: Number of records (max 10000)
-    - offset: Starting position
+    - limit: Số lượng records (tối đa 10000)
+    - offset: Vị trí bắt đầu
     """
     try:
         analyses = await analysis_service.get_all(limit=limit, offset=offset)
@@ -110,10 +110,10 @@ async def export_analyses_excel(
     offset: int = Query(0, ge=0)
 ):
     """
-    Export analyses to Excel (XLSX)
+    Xuất dữ liệu ra file Excel (XLSX)
     
-    - limit: Number of records (max 10000)
-    - offset: Starting position
+    - limit: Số lượng records (tối đa 10000)
+    - offset: Vị trí bắt đầu
     """
     try:
         analyses = await analysis_service.get_all(limit=limit, offset=offset)
@@ -125,17 +125,17 @@ async def export_analyses_excel(
             from openpyxl import Workbook
             from openpyxl.styles import Font, PatternFill, Alignment
             
-            # Create workbook
+            # Tạo workbook
             wb = Workbook()
             ws = wb.active
-            ws.title = "Analyses"
+            ws.title = "Các mẫu phân tích"
             
-            # Headers
-            headers = ['ID', 'Filename', 'SHA256', 'MD5', 'File Size (bytes)', 
-                      'Malware Detected', 'Analysis Time (s)', 'Created At']
+            # Tiêu đề cột
+            headers = ['ID', 'Tên file', 'SHA256', 'MD5', 'Kích thước (bytes)', 
+                      'Phát hiện Malware', 'Thời gian phân tích (s)', 'Ngày tạo']
             ws.append(headers)
             
-            # Style headers
+            # Định dạng tiêu đề
             header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
             header_font = Font(bold=True, color="FFFFFF")
             for cell in ws[1]:
@@ -143,7 +143,7 @@ async def export_analyses_excel(
                 cell.font = header_font
                 cell.alignment = Alignment(horizontal="center", vertical="center")
             
-            # Add data
+            # Thêm dữ liệu vào bảng
             for analysis in analyses:
                 ws.append([
                     analysis.get('id'),
@@ -156,7 +156,7 @@ async def export_analyses_excel(
                     str(analysis.get('created_at', ''))
                 ])
             
-            # Auto-adjust column widths
+            # Tự động điều chỉnh độ rộng cột
             for column in ws.columns:
                 max_length = 0
                 column_letter = column[0].column_letter
@@ -169,7 +169,7 @@ async def export_analyses_excel(
                 adjusted_width = min(max_length + 2, 50)
                 ws.column_dimensions[column_letter].width = adjusted_width
             
-            # Save to BytesIO
+            # Lưu vào bộ nhớ đệm
             output = BytesIO()
             wb.save(output)
             output.seek(0)

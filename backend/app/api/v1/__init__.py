@@ -1,5 +1,5 @@
 """
-API v1 module
+Module API v1 - Định nghĩa các routes chính của hệ thống
 """
 from fastapi import APIRouter
 # Temporarily disabled ratings until rating_repository is migrated to services

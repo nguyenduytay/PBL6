@@ -1,5 +1,5 @@
 """
-Ratings endpoints - Đánh giá và review cho analyses
+Ratings endpoints - Quản lý đánh giá và review cho các phân tích
 """
 import os
 import sys
@@ -62,13 +62,13 @@ class RatingStatsResponse(BaseModel):
 @router.post("", response_model=RatingResponse)
 async def create_rating(rating: RatingCreate):
     """
-    Tạo đánh giá cho analysis
+    Tạo đánh giá mới cho một phân tích.
     
-    - analysis_id: ID của analysis
-    - rating: Điểm đánh giá (1-5 sao)
-    - comment: Comment đánh giá
-    - reviewer_name: Tên người đánh giá
-    - tags: Tags đánh giá
+    - analysis_id: ID của phân tích.
+    - rating: Điểm đánh giá (1-5 sao).
+    - comment: Bình luận đánh giá.
+    - reviewer_name: Tên người đánh giá.
+    - tags: Các thẻ (tags) liên quan đến đánh giá.
     """
     try:
         # Kiểm tra analysis có tồn tại không
@@ -119,11 +119,11 @@ async def get_ratings(
     offset: int = Query(0, ge=0)
 ):
     """
-    Lấy danh sách đánh giá của analysis
+    Lấy danh sách đánh giá cho một phân tích cụ thể.
     
-    - analysis_id: ID của analysis
-    - limit: Số lượng kết quả
-    - offset: Vị trí bắt đầu
+    - analysis_id: ID của phân tích.
+    - limit: Số lượng kết quả tối đa.
+    - offset: Vị trí bắt đầu lấy kết quả.
     """
     try:
         # Kiểm tra analysis có tồn tại không
@@ -157,10 +157,10 @@ async def get_ratings(
 @router.put("/{rating_id}", response_model=RatingResponse)
 async def update_rating(rating_id: int, rating_update: RatingUpdate):
     """
-    Cập nhật đánh giá
+    Cập nhật thông tin của một đánh giá hiện có.
     
-    - rating_id: ID của rating
-    - rating_update: Dữ liệu cập nhật
+    - rating_id: ID của đánh giá cần cập nhật.
+    - rating_update: Dữ liệu cập nhật cho đánh giá.
     """
     try:
         # Lấy rating hiện tại
@@ -208,7 +208,7 @@ async def delete_rating(rating_id: int):
         return {"message": "Rating deleted successfully"}
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error deleting rating: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Lỗi khi xóa đánh giá: {str(e)}")
 
 
 @router.get("/stats/{analysis_id}", response_model=RatingStatsResponse)

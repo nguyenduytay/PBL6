@@ -18,6 +18,8 @@ from app.services.yara_service import YaraService
 from app.services.hash_service import HashService
 from app.services.static_analyzer_service import StaticAnalyzerService
 from app.services.analysis_service import AnalysisService
+from app.database.analysis_repository import AnalysisRepository
+from app.services.ember_service import EmberService
 
 class AnalyzerService:
     """Service xử lý phân tích malware"""
@@ -26,15 +28,23 @@ class AnalyzerService:
         self.yara_service = YaraService()
         self.hash_service = HashService()
         self.static_analyzer_service = StaticAnalyzerService()
-        self.analysis_service = AnalysisService()
+        self.ember_service = EmberService()
+        self.analysis_repo = AnalysisRepository()
     
-    async def analyze_single_file(self, filepath: str) -> List[Dict[str, Any]]:
+    async def analyze_single_file(self, filepath: str, scan_modules: List[str] = None) -> List[Dict[str, Any]]:
         """
         Phân tích một file đơn lẻ
         
+        Args:
+            filepath: Đường dẫn file
+            scan_modules: List các modules chạy ["yara", "ember", "hash"]. Default None = Run All.
+
         Returns:
             List of analysis results
         """
+        if scan_modules is None:
+            scan_modules = ["hash", "yara", "ember"]
+
         results = []
         
         # 1) Hash-based detection
@@ -44,16 +54,29 @@ class AnalyzerService:
         # Get SHA256 for infoUrl
         sha256 = self.hash_service.calculate_hash(filepath)
         
-        # 3) YARA scan
-        yara_results = self.yara_service.scan_file(filepath)
-        
-        # Add SHA256 to YARA results for infoUrl
-        if yara_results and sha256:
-            for result in yara_results:
-                if result.get("type") == "yara" and not result.get("infoUrl"):
-                    result["infoUrl"] = f"https://bazaar.abuse.ch/sample/{sha256}/"
-        
-        results.extend(yara_results)
+        if "yara" in scan_modules:
+            # 3) YARA scan
+            yara_results = self.yara_service.scan_file(filepath)
+            
+            # Add SHA256 to YARA results for infoUrl
+            if yara_results and sha256:
+                for result in yara_results:
+                    if result.get("type") == "yara" and not result.get("infoUrl"):
+                        result["infoUrl"] = f"https://bazaar.abuse.ch/sample/{sha256}/"
+            
+            results.extend(yara_results)
+
+        if "ember" in scan_modules:
+            # 4) EMBER scan
+            ember_result = self.ember_service.predict(filepath)
+            if ember_result.get("is_malware"):
+                results.append({
+                    "type": "model",
+                    "subtype": "ember",
+                    "message": f"[MALWARE] EMBER detection (Score: {ember_result['score']:.4f})",
+                    "score": ember_result['score'],
+                    "infoUrl": None 
+                })
         
         # 4) Nếu không phát hiện gì
         if not results:
@@ -65,7 +88,7 @@ class AnalyzerService:
         
         return results
     
-    async def analyze_and_save(self, filepath: str, filename: str) -> Dict[str, Any]:
+    async def analyze_and_save(self, filepath: str, filename: str, scan_modules: List[str] = None) -> Dict[str, Any]:
         """
         Phân tích file và lưu kết quả vào database
         
@@ -79,14 +102,14 @@ class AnalyzerService:
         start_time = time.time()
         
         # Phân tích file
-        results = await self.analyze_single_file(filepath)
+        results = await self.analyze_single_file(filepath, scan_modules)
         static_analysis = self.analyze_with_static_analyzer(filepath)
         
         elapsed = time.time() - start_time
         
         # Xác định có malware không
         malware_detected = any(
-            result.get("type") in ["hash", "yara"] 
+            result.get("type") in ["hash", "yara", "model"] 
             for result in results
         )
         
@@ -136,7 +159,7 @@ class AnalyzerService:
         for filepath in file_paths:
             try:
                 file_results = await self.analyze_single_file(filepath)
-                has_malware = any(result["type"] in ["hash", "yara"] for result in file_results)
+                has_malware = any(result["type"] in ["hash", "yara", "model"] for result in file_results)
                 
                 if has_malware:
                     malware_files.append({

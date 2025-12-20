@@ -1,5 +1,5 @@
 """
-Health check endpoints
+Health check endpoints - Kiểm tra trạng thái hệ thống
 """
 from fastapi import APIRouter
 from app.core.config import settings
@@ -8,7 +8,7 @@ router = APIRouter()
 
 @router.get("")
 async def health_check():
-    """Health check endpoint"""
+    """Kiểm tra trạng thái hoạt động của hệ thống"""
     yara_rules = settings.get_yara_rules()
     return {
         "status": "healthy",

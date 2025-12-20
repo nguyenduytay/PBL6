@@ -24,7 +24,7 @@ router = APIRouter()
 analyzer_service = AnalyzerService()
 analysis_service = AnalysisService()
 
-# In-memory storage cho batch jobs (nên dùng Redis trong production)
+# Lưu trữ tạm các batch jobs trong bộ nhớ (nên dùng Redis khi triển khai thực tế)
 batch_jobs = {}
 
 
@@ -58,7 +58,7 @@ class BatchScanResult(BaseModel):
 
 
 async def process_batch_scan(batch_id: str, files: List[Path], batch_jobs: dict):
-    """Xử lý batch scan trong background"""
+    """Xử lý quét hàng loạt trong background"""
     batch_jobs[batch_id] = {
         "status": "processing",
         "total_files": len(files),
@@ -98,14 +98,14 @@ async def process_batch_scan(batch_id: str, files: List[Path], batch_jobs: dict)
 
 
 def extract_archive(file_path: Path, extract_to: Path) -> List[Path]:
-    """Extract archive and return list of files"""
+    """Giải nén file và trả về danh sách đường dẫn file"""
     extracted_files = []
     
-    # Check file extension
+    # Kiểm tra phần mở rộng file
     file_ext = file_path.suffix.lower()
     file_name_lower = file_path.name.lower()
     
-    # Handle ZIP files
+    # Xử lý file ZIP
     if file_ext == '.zip' or file_name_lower.endswith('.zip'):
         try:
             with zipfile.ZipFile(file_path, 'r') as zip_ref:
@@ -117,10 +117,10 @@ def extract_archive(file_path: Path, extract_to: Path) -> List[Path]:
         except Exception as e:
             raise ValueError(f"Error extracting ZIP file: {str(e)}")
     
-    # Handle TAR files (including compressed variants)
+    # Xử lý file TAR (bao gồm cả nén gz, bz2)
     elif file_ext in ['.tar', '.gz', '.bz2'] or any(file_name_lower.endswith(ext) for ext in ['.tar.gz', '.tar.bz2', '.tgz']):
         try:
-            # Determine tar mode
+            # Xác định chế độ đọc TAR
             mode = 'r'
             if file_ext == '.gz' or file_name_lower.endswith('.tar.gz') or file_name_lower.endswith('.tgz'):
                 mode = 'r:gz'
@@ -138,7 +138,7 @@ def extract_archive(file_path: Path, extract_to: Path) -> List[Path]:
     else:
         raise ValueError(f"Unsupported archive format: {file_path.name}. Supported: ZIP, TAR, GZ, BZ2")
     
-    # Filter only files (not folders)
+    # Chỉ lọc lấy file (không lấy thư mục)
     return [f for f in extracted_files if f.is_file()]
 
 
@@ -208,10 +208,10 @@ async def scan_folder_upload(
     background_tasks: BackgroundTasks = None
 ):
     """
-    Upload and scan multiple files from folder (from client)
+    Upload và quét nhiều file từ client
     
-    - files: List of files from selected folder
-    - Maximum total size: 2GB (configurable in settings)
+    - files: Danh sách file từ thư mục đã chọn
+    - Giới hạn kích thước: 2GB (có thể cấu hình)
     """
     import uuid
     batch_id = str(uuid.uuid4())
@@ -240,13 +240,13 @@ async def scan_folder_upload(
             detail=f"Total size ({size_gb:.2f} GB) exceeds maximum allowed size ({max_gb} GB)"
         )
     
-    # Save all files to temp folder
+    # Lưu tất cả file vào thư mục tạm
     temp_folder = settings.UPLOAD_FOLDER / f"temp_{batch_id}"
     temp_folder.mkdir(exist_ok=True)
     
     files_to_scan = []
     for file in files:
-        # Sanitize filename
+        # Làm sạch tên file
         safe_filename = file.filename.replace('/', '_').replace('\\', '_')
         file_path = temp_folder / safe_filename
         
@@ -291,16 +291,10 @@ async def scan_batch(
     background_tasks: BackgroundTasks = None
 ):
     """
-    Scan multiple files from archive (ZIP/TAR)
+    Quét nhiều file từ file nén (ZIP/TAR)
     
-    - Upload ZIP/TAR file containing multiple files
-    - Automatically extract and scan all files inside
-    
-    Supported formats:
-    - ZIP (.zip)
-    - TAR (.tar)
-    - GZIP (.gz, .tar.gz, .tgz)
-    - BZIP2 (.bz2, .tar.bz2)
+    - Tự động giải nén và quét toàn bộ file bên trong
+    - Hỗ trợ: ZIP, TAR, GZ, BZ2
     """
     import uuid
     batch_id = str(uuid.uuid4())
@@ -318,13 +312,13 @@ async def scan_batch(
             detail=f"Archive size ({size_gb:.2f} GB) exceeds maximum allowed size ({max_gb} GB)"
         )
     
-    # Save archive
+    # Lưu file nén
     archive_path = settings.UPLOAD_FOLDER / archive.filename
     with open(archive_path, "wb") as f:
         f.write(content)
     
     try:
-        # Extract archive
+        # Giải nén
         extract_folder = settings.UPLOAD_FOLDER / f"extract_{batch_id}"
         extract_folder.mkdir(exist_ok=True)
         
@@ -367,7 +361,7 @@ async def scan_batch(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing archive: {str(e)}")
     finally:
-        # Cleanup
+        # Dọn dẹp file nén sau khi xong
         if archive_path.exists():
             os.remove(archive_path)
 
