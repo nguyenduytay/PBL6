@@ -33,8 +33,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Sao chép toàn bộ mã nguồn vào container
 COPY . .
 
-# Tạo thư mục uploads
-RUN mkdir -p uploads logs
+# Tạo thư mục uploads và models
+RUN mkdir -p uploads logs models
+
+# Đảm bảo thư mục models tồn tại (nếu chưa có trong COPY)
+# COPY models sẽ được thực hiện nếu có trong build context
 
 # Expose port 5000 cho FastAPI
 EXPOSE 5000

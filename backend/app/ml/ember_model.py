@@ -22,8 +22,27 @@ class EmberModel:
     
     def _find_model_path(self) -> Path:
         """Tìm đường dẫn file model EMBER"""
-        models_dir = Path(__file__).parent.parent.parent / "models"
-        return models_dir / self.model_filename
+        # Vị trí mặc định: backend/models
+        default_models_dir = Path(__file__).parent.parent.parent / "models"
+        default_path = default_models_dir / self.model_filename
+        
+        # Thử các vị trí có thể (ưu tiên Docker, sau đó mặc định)
+        possible_paths = [
+            Path("/app/models"),  # Docker container path
+            default_models_dir,  # backend/models (mặc định)
+            Path("/models"),  # Alternative Docker path
+        ]
+        
+        for models_dir in possible_paths:
+            model_path = models_dir / self.model_filename
+            if model_path.exists():
+                if models_dir != default_models_dir:
+                    print(f"[INFO] Found EMBER model at: {model_path}")
+                return model_path
+        
+        # Trả về đường dẫn mặc định nếu không tìm thấy
+        print(f"[WARN] Model not found, using default path: {default_path}")
+        return default_path
 
     def _load_model(self):
         """Load LightGBM model từ file"""

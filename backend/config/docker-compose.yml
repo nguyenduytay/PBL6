@@ -51,6 +51,7 @@ services:
       # Mount YARA rules để có thể update rules mà không cần rebuild
       - ../yara_rules:/app/yara_rules
       # Mount models folder để có thể sử dụng EMBER model
+      # Context là .. (backend/), nên ../models = backend/models (đúng)
       - ../models:/app/models
       # Mount malware database JSON file
       - ../src/Database/Malware.json:/app/src/Database/Malware.json
