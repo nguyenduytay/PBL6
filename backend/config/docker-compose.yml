@@ -50,6 +50,8 @@ services:
       - ../logs:/app/logs
       # Mount YARA rules để có thể update rules mà không cần rebuild
       - ../yara_rules:/app/yara_rules
+      # Mount models folder để có thể sử dụng EMBER model
+      - ../models:/app/models
       # Mount malware database JSON file
       - ../src/Database/Malware.json:/app/src/Database/Malware.json
     depends_on:
