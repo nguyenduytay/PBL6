@@ -1,5 +1,6 @@
 """
-Services - Business logic layer
+Services Module - Tầng business logic
+Các service xử lý logic nghiệp vụ: phân tích malware, YARA, hash, static analysis
 """
 from .analyzer_service import AnalyzerService
 from .yara_service import YaraService

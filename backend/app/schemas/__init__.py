@@ -1,5 +1,6 @@
 """
-Schemas - Pydantic models cho request/response
+Schemas Module - Pydantic models cho validation
+Các schema để validate request/response và serialize data
 """
 from .scan import ScanResult, AnalysisResult, FileAnalysisResult
 

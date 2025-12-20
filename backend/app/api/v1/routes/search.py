@@ -1,5 +1,5 @@
 """
-Search endpoints - Tìm kiếm analyses
+Search endpoints - API tìm kiếm analyses
 """
 import os
 import sys
@@ -7,7 +7,7 @@ from typing import List, Optional
 from datetime import datetime
 from fastapi import APIRouter, Query, HTTPException
 
-# Add project root to path
+# Thêm project root vào path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
@@ -17,7 +17,7 @@ from app.schemas.analysis import AnalysisResponse
 
 
 router = APIRouter()
-analysis_service = AnalysisService()
+analysis_service = AnalysisService()  # Service tìm kiếm analyses
 
 
 @router.get("/analyses")
@@ -38,14 +38,15 @@ async def search_analyses(
     - Tìm theo hash: q=abc123...
     """
     try:
+        # Kiểm tra query không rỗng
         if not q or not q.strip():
             raise HTTPException(status_code=400, detail="Search query cannot be empty")
         
         query = q.strip()
         
-        # Lấy kết quả và tổng số lượng khớp
-        results = await analysis_repo.search(query, limit=limit, offset=offset)
-        total = await analysis_repo.count_search(query)
+        # Tìm kiếm theo filename, SHA256, hoặc MD5
+        results = await analysis_service.search(query, limit=limit, offset=offset)
+        total = await analysis_service.count_search(query)  # Tổng số kết quả
         
         if not results:
             # Trả về danh sách trống nếu không tìm thấy
@@ -56,11 +57,11 @@ async def search_analyses(
                 "offset": offset
             }
         
-        # Chuyển đổi sang model response, xử lý các trường thiếu
+        # Chuyển đổi sang response model, xử lý các trường thiếu
         response_list = []
         for r in results:
             try:
-                # Xử lý các trường thời gian nếu là chuỗi
+                # Xử lý datetime từ string sang datetime object
                 created_at = r.get('created_at')
                 if isinstance(created_at, str):
                     try:
@@ -77,7 +78,7 @@ async def search_analyses(
                     except:
                         upload_time = None
                 
-                # Đảm bảo tất cả các trường bắt buộc đều có dữ liệu
+                # Đảm bảo tất cả các trường bắt buộc đều có giá trị
                 response_data = {
                     'id': r.get('id'),
                     'filename': r.get('filename', ''),
@@ -95,7 +96,7 @@ async def search_analyses(
                 }
                 response_list.append(AnalysisResponse(**response_data))
             except Exception as e:
-                # Bỏ qua kết quả không hợp lệ và in lỗi để debug
+                # Bỏ qua kết quả không hợp lệ, in lỗi để debug
                 import traceback
                 traceback.print_exc()
                 continue

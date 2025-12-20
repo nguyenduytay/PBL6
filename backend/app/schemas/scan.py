@@ -1,5 +1,6 @@
 """
-Scan schemas - Pydantic models cho scan API
+Scan Schemas - Validation cho scan API
+Pydantic models để validate request/response của các endpoint quét file
 """
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field

@@ -1,5 +1,5 @@
 """
-Export endpoints - Xuất dữ liệu phân tích ra các định dạng khác nhau
+Export endpoints - API xuất dữ liệu phân tích ra CSV/JSON/Excel
 """
 import os
 import sys
@@ -10,7 +10,7 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import Response
 
-# Add project root to path
+# Thêm project root vào path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
@@ -18,7 +18,7 @@ if project_root not in sys.path:
 from app.services.analysis_service import AnalysisService
 
 router = APIRouter()
-analysis_service = AnalysisService()
+analysis_service = AnalysisService()  # Service lấy dữ liệu analyses
 
 
 @router.get("/analyses/csv")
@@ -38,14 +38,15 @@ async def export_analyses_csv(
         if not analyses:
             raise HTTPException(status_code=404, detail="No analyses found")
         
-        # Tạo CSV
+        # Tạo file CSV với các cột cần thiết
         output = StringIO()
         writer = csv.DictWriter(output, fieldnames=[
             'id', 'filename', 'sha256', 'md5', 'file_size', 
             'malware_detected', 'analysis_time', 'created_at'
         ])
-        writer.writeheader()
+        writer.writeheader()  # Ghi header
         
+        # Ghi từng dòng dữ liệu
         for analysis in analyses:
             writer.writerow({
                 'id': analysis.get('id'),
@@ -90,12 +91,13 @@ async def export_analyses_json(
         if not analyses:
             raise HTTPException(status_code=404, detail="No analyses found")
         
+        # Chuyển đổi sang JSON với format đẹp
         json_content = json.dumps(analyses, indent=2, default=str)
         
         return Response(
             content=json_content,
             media_type="application/json",
-            headers={"Content-Disposition": "attachment; filename=analyses_export.json"}
+            headers={"Content-Disposition": "attachment; filename=analyses_export.json"}  # Tên file download
         )
         
     except HTTPException:
@@ -125,17 +127,17 @@ async def export_analyses_excel(
             from openpyxl import Workbook
             from openpyxl.styles import Font, PatternFill, Alignment
             
-            # Tạo workbook
+            # Tạo workbook Excel
             wb = Workbook()
             ws = wb.active
             ws.title = "Các mẫu phân tích"
             
-            # Tiêu đề cột
+            # Tạo tiêu đề cột
             headers = ['ID', 'Tên file', 'SHA256', 'MD5', 'Kích thước (bytes)', 
                       'Phát hiện Malware', 'Thời gian phân tích (s)', 'Ngày tạo']
             ws.append(headers)
             
-            # Định dạng tiêu đề
+            # Định dạng tiêu đề (màu xanh, chữ trắng, in đậm)
             header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
             header_font = Font(bold=True, color="FFFFFF")
             for cell in ws[1]:
@@ -143,7 +145,7 @@ async def export_analyses_excel(
                 cell.font = header_font
                 cell.alignment = Alignment(horizontal="center", vertical="center")
             
-            # Thêm dữ liệu vào bảng
+            # Thêm dữ liệu vào các dòng
             for analysis in analyses:
                 ws.append([
                     analysis.get('id'),
@@ -156,7 +158,7 @@ async def export_analyses_excel(
                     str(analysis.get('created_at', ''))
                 ])
             
-            # Tự động điều chỉnh độ rộng cột
+            # Tự động điều chỉnh độ rộng cột theo nội dung
             for column in ws.columns:
                 max_length = 0
                 column_letter = column[0].column_letter
@@ -166,13 +168,13 @@ async def export_analyses_excel(
                             max_length = len(str(cell.value))
                     except:
                         pass
-                adjusted_width = min(max_length + 2, 50)
+                adjusted_width = min(max_length + 2, 50)  # Tối đa 50 ký tự
                 ws.column_dimensions[column_letter].width = adjusted_width
             
-            # Lưu vào bộ nhớ đệm
+            # Lưu workbook vào bộ nhớ đệm
             output = BytesIO()
             wb.save(output)
-            output.seek(0)
+            output.seek(0)  # Reset pointer về đầu file
             
             return Response(
                 content=output.getvalue(),

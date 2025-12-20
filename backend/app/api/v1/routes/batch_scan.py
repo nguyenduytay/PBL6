@@ -1,5 +1,5 @@
 """
-Batch Scan endpoints - Scan nhiều file hoặc folder
+Batch Scan endpoints - API quét hàng loạt nhiều file hoặc folder
 """
 import os
 import sys
@@ -11,7 +11,7 @@ from typing import List, Optional
 from fastapi import APIRouter, File, UploadFile, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 
-# Add project root to path
+# Thêm project root vào path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
@@ -21,10 +21,10 @@ from app.services.analyzer_service import AnalyzerService
 from app.services.analysis_service import AnalysisService
 
 router = APIRouter()
-analyzer_service = AnalyzerService()
-analysis_service = AnalysisService()
+analyzer_service = AnalyzerService()  # Service phân tích malware
+analysis_service = AnalysisService()  # Service quản lý analyses
 
-# Lưu trữ tạm các batch jobs trong bộ nhớ (nên dùng Redis khi triển khai thực tế)
+# Lưu trữ tạm các batch jobs trong bộ nhớ (nên dùng Redis khi production)
 batch_jobs = {}
 
 
@@ -58,7 +58,8 @@ class BatchScanResult(BaseModel):
 
 
 async def process_batch_scan(batch_id: str, files: List[Path], batch_jobs: dict):
-    """Xử lý quét hàng loạt trong background"""
+    """Xử lý quét hàng loạt trong background task"""
+    # Khởi tạo batch job
     batch_jobs[batch_id] = {
         "status": "processing",
         "total_files": len(files),
@@ -69,11 +70,12 @@ async def process_batch_scan(batch_id: str, files: List[Path], batch_jobs: dict)
         "errors": []
     }
     
+    # Quét từng file trong danh sách
     for file_path in files:
         try:
             batch_jobs[batch_id]["processed"] += 1
             
-            # Phân tích file
+            # Phân tích file và lưu vào database
             analysis_data = await analyzer_service.analyze_and_save(
                 str(file_path),
                 file_path.name
@@ -88,20 +90,21 @@ async def process_batch_scan(batch_id: str, files: List[Path], batch_jobs: dict)
             })
             
         except Exception as e:
+            # Ghi lại lỗi nếu có
             batch_jobs[batch_id]["failed"] += 1
             batch_jobs[batch_id]["errors"].append({
                 "filename": file_path.name,
                 "error": str(e)
             })
     
-    batch_jobs[batch_id]["status"] = "completed"
+    batch_jobs[batch_id]["status"] = "completed"  # Đánh dấu hoàn thành
 
 
 def extract_archive(file_path: Path, extract_to: Path) -> List[Path]:
-    """Giải nén file và trả về danh sách đường dẫn file"""
+    """Giải nén file ZIP/TAR và trả về danh sách file bên trong"""
     extracted_files = []
     
-    # Kiểm tra phần mở rộng file
+    # Kiểm tra định dạng file nén
     file_ext = file_path.suffix.lower()
     file_name_lower = file_path.name.lower()
     
@@ -138,7 +141,7 @@ def extract_archive(file_path: Path, extract_to: Path) -> List[Path]:
     else:
         raise ValueError(f"Unsupported archive format: {file_path.name}. Supported: ZIP, TAR, GZ, BZ2")
     
-    # Chỉ lọc lấy file (không lấy thư mục)
+    # Chỉ trả về file (bỏ qua thư mục)
     return [f for f in extracted_files if f.is_file()]
 
 
@@ -162,16 +165,17 @@ async def scan_folder(
     if not folder_path.exists() or not folder_path.is_dir():
         raise HTTPException(status_code=404, detail="Folder not found")
     
-    # Lấy danh sách files
+    # Lấy danh sách file trong folder (có thể lọc theo extension)
     all_files = []
     extensions = request.file_extensions or []
     
-    for file_path in folder_path.rglob('*'):
+    for file_path in folder_path.rglob('*'):  # Tìm đệ quy tất cả file
         if file_path.is_file():
+            # Lọc theo extension nếu có yêu cầu
             if not extensions or file_path.suffix.lower().lstrip('.') in [ext.lower() for ext in extensions]:
                 all_files.append(file_path)
     
-    # Giới hạn số lượng files
+    # Giới hạn số lượng file để tránh quá tải
     if request.max_files:
         all_files = all_files[:request.max_files]
     
@@ -219,19 +223,20 @@ async def scan_folder_upload(
     if not files:
         raise HTTPException(status_code=400, detail="No files provided")
     
-    # Check total size before processing
+    # Kiểm tra tổng kích thước trước khi xử lý
     total_size = 0
     for file in files:
-        # Read file size from content-length header if available
+        # Đọc kích thước từ header nếu có
         if hasattr(file, 'size') and file.size:
             total_size += file.size
         else:
-            # Read content to get size (this will be done anyway)
+            # Đọc nội dung để lấy kích thước
             content = await file.read()
             total_size += len(content)
-            # Reset file pointer for later reading
+            # Reset file pointer để đọc lại sau
             await file.seek(0)
     
+    # Kiểm tra vượt quá giới hạn
     if total_size > settings.MAX_UPLOAD_SIZE_BYTES:
         size_gb = total_size / (1024 * 1024 * 1024)
         max_gb = settings.MAX_UPLOAD_SIZE_GB
@@ -246,7 +251,7 @@ async def scan_folder_upload(
     
     files_to_scan = []
     for file in files:
-        # Làm sạch tên file
+        # Làm sạch tên file (loại bỏ ký tự đặc biệt)
         safe_filename = file.filename.replace('/', '_').replace('\\', '_')
         file_path = temp_folder / safe_filename
         
@@ -299,11 +304,11 @@ async def scan_batch(
     import uuid
     batch_id = str(uuid.uuid4())
     
-    # Read archive content
+    # Đọc nội dung file nén
     content = await archive.read()
     archive_size = len(content)
     
-    # Check file size
+    # Kiểm tra kích thước file nén
     if archive_size > settings.MAX_UPLOAD_SIZE_BYTES:
         size_gb = archive_size / (1024 * 1024 * 1024)
         max_gb = settings.MAX_UPLOAD_SIZE_GB
@@ -312,18 +317,18 @@ async def scan_batch(
             detail=f"Archive size ({size_gb:.2f} GB) exceeds maximum allowed size ({max_gb} GB)"
         )
     
-    # Lưu file nén
+    # Lưu file nén vào thư mục upload
     archive_path = settings.UPLOAD_FOLDER / archive.filename
     with open(archive_path, "wb") as f:
         f.write(content)
     
     try:
-        # Giải nén
+        # Giải nén file vào thư mục riêng
         extract_folder = settings.UPLOAD_FOLDER / f"extract_{batch_id}"
         extract_folder.mkdir(exist_ok=True)
         
         try:
-            extracted_files = extract_archive(archive_path, extract_folder)
+            extracted_files = extract_archive(archive_path, extract_folder)  # Giải nén ZIP/TAR
         except ValueError as ve:
             raise HTTPException(status_code=400, detail=str(ve))
         except Exception as e:
@@ -368,7 +373,7 @@ async def scan_batch(
 
 @router.get("/batch/{batch_id}", response_model=BatchScanResult)
 async def get_batch_result(batch_id: str):
-    """Lấy kết quả batch scan"""
+    """Lấy kết quả chi tiết của batch scan (bao gồm results và errors)"""
     if batch_id not in batch_jobs:
         raise HTTPException(status_code=404, detail="Batch job not found")
     
@@ -387,7 +392,7 @@ async def get_batch_result(batch_id: str):
 
 @router.get("/batch/{batch_id}/status", response_model=BatchScanResponse)
 async def get_batch_status(batch_id: str):
-    """Lấy trạng thái batch scan"""
+    """Lấy trạng thái batch scan (không có chi tiết results)"""
     if batch_id not in batch_jobs:
         raise HTTPException(status_code=404, detail="Batch job not found")
     

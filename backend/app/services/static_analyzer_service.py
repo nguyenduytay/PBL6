@@ -1,6 +1,6 @@
 """
-Static Analyzer Service
-Handles static analysis of PE files
+Static Analyzer Service - Phân tích tĩnh file PE
+Phân tích cấu trúc PE file, trích xuất strings, capabilities, imports/exports
 """
 
 from typing import Dict, Any, Optional

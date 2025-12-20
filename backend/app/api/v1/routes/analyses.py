@@ -1,12 +1,12 @@
 """
-Analyses endpoints - Xem lịch sử phân tích
+Analyses endpoints - API quản lý lịch sử phân tích
 """
 import os
 import sys
 from typing import List, Optional
 from fastapi import APIRouter, Query, HTTPException
 
-# Add project root to path
+# Thêm project root vào path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
@@ -15,7 +15,7 @@ from app.services.analysis_service import AnalysisService
 from app.schemas.analysis import AnalysisResponse
 
 router = APIRouter()
-analysis_service = AnalysisService()
+analysis_service = AnalysisService()  # Service quản lý analyses
 
 @router.get("")
 async def get_analyses(
@@ -37,8 +37,9 @@ async def get_analyses(
         }
     """
     try:
+        # Lấy danh sách analyses với pagination
         analyses = await analysis_service.get_all(limit=limit, offset=offset)
-        total = await analysis_service.count_all()
+        total = await analysis_service.count_all()  # Tổng số analyses
         
         return {
             "items": analyses,
@@ -51,7 +52,7 @@ async def get_analyses(
 
 @router.get("/{analysis_id}")
 async def get_analysis(analysis_id: int):
-    """Lấy chi tiết một analysis"""
+    """Lấy chi tiết một analysis theo ID"""
     try:
         analysis = await analysis_service.get_by_id(analysis_id)
         if not analysis:
@@ -64,7 +65,7 @@ async def get_analysis(analysis_id: int):
 
 @router.get("/sha256/{sha256}")
 async def get_analysis_by_sha256(sha256: str):
-    """Lấy analysis theo SHA256"""
+    """Lấy analysis theo hash SHA256"""
     try:
         analysis = await analysis_service.get_by_sha256(sha256)
         if not analysis:
@@ -77,7 +78,7 @@ async def get_analysis_by_sha256(sha256: str):
 
 @router.get("/stats/summary")
 async def get_statistics():
-    """Lấy thống kê tổng quan"""
+    """Lấy thống kê tổng quan: tổng số, malware, file sạch, 24h gần đây"""
     try:
         stats = await analysis_service.get_statistics()
         return stats
@@ -93,7 +94,7 @@ async def delete_analysis(analysis_id: int):
         if not analysis:
             raise HTTPException(status_code=404, detail="Analysis not found")
         
-        # Xóa analysis
+        # Xóa analysis và các dữ liệu liên quan (yara_matches, ratings)
         deleted = await analysis_service.delete(analysis_id)
         if not deleted:
             raise HTTPException(status_code=500, detail="Failed to delete analysis")

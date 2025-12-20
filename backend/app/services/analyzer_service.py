@@ -1,13 +1,12 @@
 """
-Analyzer Service - Business logic cho phân tích malware
+Analyzer Service - Điều phối phân tích malware
+Orchestrator chính: kết hợp YARA, Hash, EMBER, Static Analysis để phát hiện malware
 """
 import os
+import sys
 import time
 from typing import List, Dict, Any, Optional
 from pathlib import Path
-
-import sys
-import os
 # Add project root to path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 if project_root not in sys.path:
@@ -18,8 +17,8 @@ from app.services.yara_service import YaraService
 from app.services.hash_service import HashService
 from app.services.static_analyzer_service import StaticAnalyzerService
 from app.services.analysis_service import AnalysisService
-from app.database.analysis_repository import AnalysisRepository
-from app.services.ember_service import EmberService
+# Sử dụng ML module mới
+from app.ml.ember_model import EmberModel
 
 class AnalyzerService:
     """Service xử lý phân tích malware"""
@@ -28,8 +27,8 @@ class AnalyzerService:
         self.yara_service = YaraService()
         self.hash_service = HashService()
         self.static_analyzer_service = StaticAnalyzerService()
-        self.ember_service = EmberService()
-        self.analysis_repo = AnalysisRepository()
+        self.ember_model = EmberModel()  # Sử dụng ML module mới
+        self.analysis_service = AnalysisService()
     
     async def analyze_single_file(self, filepath: str, scan_modules: List[str] = None) -> List[Dict[str, Any]]:
         """
@@ -46,16 +45,18 @@ class AnalyzerService:
             scan_modules = ["hash", "yara", "ember"]
 
         results = []
+        sha256 = None  # Chỉ tính khi cần
         
-        # 1) Hash-based detection
-        hash_results = await self.hash_service.check_hash(filepath)
-        results.extend(hash_results)
-        
-        # Get SHA256 for infoUrl
-        sha256 = self.hash_service.calculate_hash(filepath)
+        # 1) Hash-based detection (chỉ chạy nếu "hash" trong scan_modules)
+        if "hash" in scan_modules:
+            hash_results = await self.hash_service.check_hash(filepath)
+            results.extend(hash_results)
         
         if "yara" in scan_modules:
-            # 3) YARA scan
+            # 2) YARA scan - Tính SHA256 chỉ khi cần cho YARA results
+            if sha256 is None:
+                sha256 = self.hash_service.calculate_hash(filepath)
+            
             yara_results = self.yara_service.scan_file(filepath)
             
             # Add SHA256 to YARA results for infoUrl
@@ -67,18 +68,38 @@ class AnalyzerService:
             results.extend(yara_results)
 
         if "ember" in scan_modules:
-            # 4) EMBER scan
-            ember_result = self.ember_service.predict(filepath)
-            if ember_result.get("is_malware"):
+            # 3) EMBER scan - Sử dụng ML module mới
+            ember_result = self.ember_model.predict(filepath)
+            
+            # Luôn trả về kết quả EMBER (có score) dù có phát hiện malware hay không
+            if ember_result.get("error"):
+                results.append({
+                    "type": "ember_error",
+                    "message": f"[ERROR] EMBER prediction failed: {ember_result.get('error')}",
+                    "score": 0.0,
+                    "infoUrl": None
+                })
+            elif ember_result.get("is_malware"):
                 results.append({
                     "type": "model",
                     "subtype": "ember",
                     "message": f"[MALWARE] EMBER detection (Score: {ember_result['score']:.4f})",
                     "score": ember_result['score'],
+                    "threshold": self.ember_model.threshold,
                     "infoUrl": None 
                 })
+            else:
+                # File sạch nhưng vẫn trả về score để người dùng biết
+                results.append({
+                    "type": "model",
+                    "subtype": "ember",
+                    "message": f"[CLEAN] EMBER analysis (Score: {ember_result['score']:.4f}, Threshold: {self.ember_model.threshold:.4f})",
+                    "score": ember_result['score'],
+                    "threshold": self.ember_model.threshold,
+                    "infoUrl": None
+                })
         
-        # 4) Nếu không phát hiện gì
+        # 4) Nếu không phát hiện gì (không có module nào chạy hoặc tất cả đều clean)
         if not results:
             results.append({
                 "type": "clean",
@@ -108,6 +129,8 @@ class AnalyzerService:
         elapsed = time.time() - start_time
         
         # Xác định có malware không
+        # Chỉ các type "hash", "yara", "model" được coi là malware
+        # "ember_error", "yara_error", "clean" không phải malware
         malware_detected = any(
             result.get("type") in ["hash", "yara", "model"] 
             for result in results

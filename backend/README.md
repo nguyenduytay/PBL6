@@ -37,11 +37,12 @@ Hệ thống **Malware Detector** là một nền tảng phân tích mã độc 
 
 Hệ thống sử dụng **Layered Architecture** để tách biệt concerns và dễ maintain:
 
-- **API Layer**: Nhận HTTP requests, validate input, trả về responses
-- **Application Layer**: Orchestrate các use cases, xử lý business logic phức tạp
-- **Domain Layer**: Business rules, domain models, repository interfaces
-- **Infrastructure Layer**: Database connections, external services, repository implementations
-- **Core Layer**: Configuration, security, logging, dependencies
+- **API Layer** (`app/api/`): Nhận HTTP requests, validate input, trả về responses
+- **Services Layer** (`app/services/`): Business logic, orchestration các use cases
+- **ML Module** (`app/ml/`): Machine Learning models và feature extraction
+- **Utils Module** (`app/utils/`): Utility functions, validators, exceptions
+- **Core Layer** (`app/core/`): Configuration, security, logging, database connections
+- **Models & Schemas**: Data models và Pydantic validation schemas
 
 ## 📋 Yêu Cầu
 
@@ -61,81 +62,58 @@ backend/
 │   │   ├── config.py                # Application settings (Pydantic-based)
 │   │   ├── security.py              # JWT, password hashing, RBAC
 │   │   ├── dependencies.py          # Dependency Injection
+│   │   ├── database.py              # Database connection
 │   │   └── logging.py               # Structured logging & audit
 │   │
 │   ├── 🌐 api/                       # API Layer - Presentation
 │   │   └── v1/
-│   │       ├── router.py            # Tổng hợp routers
-│   │       ├── endpoints/           # API endpoints (mới)
-│   │       │   └── analyses.py      # Analysis endpoints với DI
-│   │       └── routes/              # Legacy routes (đang migration)
-│   │           ├── scan.py         # POST /api/scan - Quét file
+│   │       ├── __init__.py          # Router tổng hợp
+│   │       └── routes/              # API endpoints
+│   │           ├── scan.py         # POST /api/scan - Quét file (full scan)
+│   │           ├── yara.py          # POST /api/scan/yara - Chỉ quét YARA
+│   │           ├── ember.py         # POST /api/scan/ember - Chỉ quét EMBER
 │   │           ├── analyses.py     # GET /api/analyses - Lịch sử phân tích
 │   │           ├── batch_scan.py    # POST /api/scan/batch - Batch scan
-│   │           ├── health.py       # GET /api/health - Health check
-│   │           ├── ratings.py       # POST /api/ratings - Rating system
 │   │           ├── search.py       # GET /api/search - Search analyses
 │   │           ├── export.py       # GET /api/export - Export data
+│   │           ├── health.py       # GET /api/health - Health check
 │   │           └── websocket.py    # WS /api/ws/{task_id} - Real-time
 │   │
-│   ├── 🏛️ domain/                    # Domain Layer - Business Logic
-│   │   └── analyses/
-│   │       ├── models.py           # Domain models (business entities)
-│   │       ├── schemas.py          # Pydantic schemas (validation)
-│   │       ├── services.py         # Business logic services
-│   │       └── repositories.py     # Repository interfaces (abstractions)
+│   ├── ⚙️ services/                  # Business Logic Layer
+│   │   ├── analyzer_service.py      # Orchestrator chính - điều phối các service
+│   │   ├── analysis_service.py     # CRUD operations cho analyses
+│   │   ├── yara_service.py          # YARA scanning service
+│   │   ├── hash_service.py          # Hash-based detection
+│   │   └── static_analyzer_service.py # PE file static analysis
 │   │
-│   ├── 🎬 application/              # Application Layer - Use Cases
-│   │   └── use_cases/
-│   │       ├── get_analysis.py     # Get analysis use case
-│   │       └── get_analyses_list.py # Get analyses list use case
+│   ├── 🤖 ml/                        # 🆕 Machine Learning Module
+│   │   ├── __init__.py              # Export các class chính
+│   │   ├── features.py              # Trích xuất features từ PE file (EMBER)
+│   │   ├── ember_model.py           # EMBER LightGBM model wrapper
+│   │   └── predictor.py             # Prediction logic wrapper
 │   │
-│   ├── 🔧 infrastructure/            # Infrastructure Layer - External Concerns
-│   │   ├── database.py             # Database connection management
-│   │   └── repositories/           # Repository implementations
-│   │       └── analysis_repository.py # Analysis repository implementation
+│   ├── 🛠️ utils/                     # 🆕 Utilities Module
+│   │   ├── __init__.py              # Export các functions chính
+│   │   ├── file_utils.py            # File handling (hash, sanitize, format)
+│   │   ├── validators.py            # Input validation (filename, size, path)
+│   │   └── exceptions.py            # Custom exceptions
 │   │
-│   ├── 🔗 shared/                   # Shared Utilities
-│   │   ├── exceptions.py           # Custom exceptions
-│   │   ├── utils.py                # Utility functions
-│   │   └── constants.py            # Application constants
+│   ├── 📋 schemas/                  # Pydantic Schemas - Data Validation
+│   │   ├── scan.py                  # Scan request/response schemas
+│   │   └── analysis.py              # Analysis schemas
 │   │
-│   ├── ⚙️ services/                  # Legacy Services (đang migration)
-│   │   ├── analyzer_service.py      # Orchestrator chính
-│   │   ├── yara_service.py          # YARA scanning
-│   │   ├── hash_service.py          # Hash detection
-│   │   └── static_analyzer_service.py # PE analysis
-│   │
-│   ├── 🗄️ database/                 # Legacy Database (đang migration)
-│   │   ├── connection.py            # MySQL connection pool
-│   │   ├── analysis_repository.py   # CRUD operations (legacy)
-│   │   ├── rating_repository.py     # Rating CRUD
-│   │   └── ml_schema.py             # ML tables schema
-│   │
-│   ├── 📋 schemas/                  # Legacy Schemas (đang migration)
-│   │   └── scan.py                  # Data validation schemas
-│   │
-│   └── 📊 models/                    # Legacy Models (đang migration)
-│       └── analysis.py              # Analysis model
-│
-├── 🔧 src/                           # Legacy Core Modules (VẪN CẦN THIẾT)
-│   ├── Analysis/
-│   │   └── StaticAnalyzer.py        # PE file analysis (được import trong config)
-│   ├── Database/
-│   │   ├── Driver.py                # MySQL driver
-│   │   └── Malware.py               # Hash database (được import trong hash_service)
-│   ├── Models/
-│   │   └── Malware.py               # Malware models
-│   └── Utils/
-│       └── Utils.py                 # Utilities (được import trong hash_service)
+│   └── 📊 models/                    # Data Models
+│       └── analysis.py              # Analysis data model
 │
 ├── 🛡️ yara_rules/                   # YARA Rules Database
 │   └── rules/
 │       └── index.yar                # 564+ YARA rules
 │
+├── 🤖 models/                        # ML Models
+│   └── 20251219_002656_ember_model_pycharm.txt  # EMBER LightGBM model
+│
 ├── 📁 uploads/                       # Upload folder (temporary files)
 ├── 📁 logs/                          # Log files (tự động tạo)
-├── 📝 scripts/                       # Utility scripts
 ├── 🐳 config/                        # Docker configuration
 │   ├── docker-compose.yml           # Docker Compose (MySQL + Backend)
 │   ├── Dockerfile                    # Backend Docker image
@@ -145,6 +123,69 @@ backend/
 ├── requirements.txt                  # Python dependencies
 └── venv/                             # Virtual environment (optional)
 ```
+
+### 📐 Cấu Trúc Module Mới (Sau Refactoring)
+
+Hệ thống đã được tái cấu trúc để dễ đọc và maintain hơn:
+
+#### 🤖 Module ML (`app/ml/`)
+- **Mục đích**: Tách riêng code Machine Learning
+- **Files**:
+  - `features.py` - Trích xuất 2381 features từ PE file cho EMBER model
+  - `ember_model.py` - Wrapper cho EMBER LightGBM model
+  - `predictor.py` - Prediction logic wrapper
+- **Lợi ích**: Dễ tìm, dễ thêm model mới, tách biệt logic ML với business logic
+
+#### 🛠️ Module Utils (`app/utils/`)
+- **Mục đích**: Tách riêng các utility functions
+- **Files**:
+  - `file_utils.py` - File handling (SHA256, MD5, sanitize, format size)
+  - `validators.py` - Input validation (filename, file size, path safety)
+  - `exceptions.py` - Custom exceptions (BusinessException, ValidationException, etc.)
+- **Lợi ích**: Dễ tìm, phân loại rõ ràng, dễ test và tái sử dụng
+
+#### 📝 Hướng Dẫn Import
+
+**Import ML Module:**
+```python
+from app.ml.ember_model import EmberModel
+from app.ml.features import EmberFeatureExtractor
+from app.ml.predictor import Predictor
+
+# Sử dụng
+model = EmberModel()
+result = model.predict("file.exe")
+```
+
+**Import Utils:**
+```python
+from app.utils.file_utils import calculate_sha256, sanitize_filename
+from app.utils.validators import validate_file_size, validate_filename
+from app.utils.exceptions import BusinessException, NotFoundException
+
+# Sử dụng
+hash_value = calculate_sha256("file.exe")
+is_valid, error = validate_filename("test.exe", [".exe", ".dll"])
+```
+
+### 🧹 Đã Dọn Dẹp
+
+Hệ thống đã được dọn dẹp và loại bỏ code dư thừa:
+
+- ✅ **Xóa 7 files dư thừa**: 
+  - `services/ember_service.py` → Đã thay bằng `ml/ember_model.py`
+  - `shared/ember_extractor.py` → Đã thay bằng `ml/features.py`
+  - `shared/utils.py` → Đã thay bằng `utils/file_utils.py`
+  - `shared/constants.py` → Đã có trong `core/config.py`
+  - `shared/exceptions.py` → Đã di chuyển sang `utils/exceptions.py`
+  - `services/feature_extractor_service.py` - Không được sử dụng
+  - `services/ml_service.py` - Không được sử dụng
+
+- ✅ **Xóa 4 thư mục trống**: `database/`, `infrastructure/`, `src/`, `shared/`
+
+- ✅ **Cập nhật imports**: Tất cả code đã được cập nhật để dùng cấu trúc mới
+
+**Kết quả**: Code sạch hơn, dễ đọc hơn, cấu trúc rõ ràng, phù hợp cho người mới
 
 ### 📐 Kiến Trúc Layered
 
@@ -1616,7 +1657,6 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
 
 ### Lỗi: YARA rules không load
 - Kiểm tra file `yara_rules/rules/index.yar` tồn tại
-- Chạy: `python scripts/check_yara_rules.py`
 
 ---
 

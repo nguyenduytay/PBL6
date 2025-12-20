@@ -1,16 +1,12 @@
 """
-Dependencies Module - Dependency Injection cho FastAPI
-Module này cung cấp các dependency functions để inject vào FastAPI endpoints
-Sử dụng FastAPI's Depends() để quản lý dependencies và lifecycle
+Dependencies Module - Dependency Injection
+Cung cấp các dependency functions (YARA rules, static analyzer, request ID) cho FastAPI
 """
 from fastapi import Depends, Request
 from typing import Optional
 import yara
 
-# Import services và repositories (sẽ được implement sau)
-# from app.domain.analyses.repositories import AnalysisRepository
-# from app.domain.analyses.services import AnalysisService
-# from app.application.use_cases.scan_file import ScanFileUseCase
+# Dependencies cho các services sẽ được thêm khi cần
 
 
 def get_yara_rules() -> Optional[yara.Rules]:
@@ -73,45 +69,5 @@ def get_request_id(request: Request) -> str:
     return request_id
 
 
-# TODO: Implement các dependencies sau khi có domain layer
-# def get_analysis_repository() -> AnalysisRepository:
-#     """
-#     Dependency: Get AnalysisRepository instance
-#     
-#     Returns:
-#         AnalysisRepository: Repository instance
-#     """
-#     from app.infrastructure.database import get_db
-#     db = get_db()
-#     return AnalysisRepository(db)
-# 
-# 
-# def get_analysis_service(
-#     repo: AnalysisRepository = Depends(get_analysis_repository)
-# ) -> AnalysisService:
-#     """
-#     Dependency: Get AnalysisService instance với repository injected
-#     
-#     Args:
-#         repo: AnalysisRepository instance (injected)
-#         
-#     Returns:
-#         AnalysisService: Service instance
-#     """
-#     return AnalysisService(repo)
-# 
-# 
-# def get_scan_file_use_case(
-#     service: AnalysisService = Depends(get_analysis_service)
-# ) -> ScanFileUseCase:
-#     """
-#     Dependency: Get ScanFileUseCase instance với service injected
-#     
-#     Args:
-#         service: AnalysisService instance (injected)
-#         
-#     Returns:
-#         ScanFileUseCase: Use case instance
-#     """
-#     return ScanFileUseCase(service)
+# Các dependencies khác sẽ được thêm khi cần
 

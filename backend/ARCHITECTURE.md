@@ -20,23 +20,35 @@ backend/
 │   ├── services/                  # Business Logic & Data Access
 │   │   ├── analysis_service.py   # Analysis CRUD & search
 │   │   ├── analyzer_service.py   # Malware analysis orchestration
-│   │   ├── yara_service.py       # YARA scanning
-│   │   ├── hash_service.py       # Hash calculation
-│   │   └── static_analyzer_service.py  # PE analysis
+│   │   │                        # - Orchestrates: YARA, Hash, EMBER, Static Analysis
+│   │   │                        # - Uses: ml/ember_model.py for ML predictions
+│   ├── yara_service.py       # YARA scanning
+│   ├── hash_service.py       # Hash calculation
+│   └── static_analyzer_service.py  # PE analysis
 │   ├── api/v1/                    # API Routes
 │   │   ├── __init__.py           # Router registration
 │   │   └── routes/               # Endpoint definitions
-│   │       ├── scan.py           # POST /api/scan
+│   │       ├── scan.py           # POST /api/scan - Full scan
+│   │       ├── yara.py           # POST /api/scan/yara - YARA only
+│   │       ├── ember.py          # POST /api/scan/ember - EMBER only
 │   │       ├── analyses.py       # GET /api/analyses
 │   │       ├── search.py         # GET /api/search/analyses
 │   │       ├── export.py         # GET /api/export/analyses
 │   │       ├── batch_scan.py     # POST /api/scan/batch
 │   │       ├── health.py         # GET /api/health
 │   │       └── websocket.py      # WebSocket /api/ws
-│   └── shared/                    # Shared Utilities
-│       ├── exceptions.py         # Custom exceptions
-│       ├── utils.py              # Helper functions
-│       └── constants.py          # Application constants
+│   ├── ml/                        # 🆕 Machine Learning Module
+│   │   ├── __init__.py           # Export classes
+│   │   ├── features.py           # Feature extraction (EMBER - 2381 features)
+│   │   ├── ember_model.py        # EMBER LightGBM model wrapper
+│   │   └── predictor.py          # Prediction logic wrapper
+│   └── utils/                     # 🆕 Utilities Module
+│       ├── __init__.py           # Export functions
+│       ├── file_utils.py         # File handling (hash, sanitize, format)
+│       ├── validators.py         # Input validation (filename, size, path)
+│       └── exceptions.py        # Custom exceptions
+├── models/                        # ML Models Storage
+│   └── 20251219_002656_ember_model_pycharm.txt  # EMBER model file
 ├── config/                        # Configuration files
 ├── logs/                          # Application logs
 ├── uploads/                       # Uploaded files storage
@@ -79,20 +91,21 @@ backend/
 │  1. Calculate file hash (SHA256, MD5)                        │
 │  2. Check hash in database (HashService)                     │
 │  3. Scan with YARA rules (YaraService)                       │
-│  4. Analyze PE structure (StaticAnalyzerService)             │
-│  5. Aggregate results                                        │
-│  6. Save to database (AnalysisService)                       │
+│  4. Predict with EMBER model (ml/ember_model.py)            │
+│  5. Analyze PE structure (StaticAnalyzerService)             │
+│  6. Aggregate results                                        │
+│  7. Save to database (AnalysisService)                       │
 └──────┬──────────────────────────────────────────────────────┘
        │
-       ├──────────────────────────────────────────────────────┐
-       │                                                        │
-       ▼                                                        ▼
-┌──────────────────┐                              ┌────────────────────┐
-│  YaraService     │                              │  HashService       │
-│  • Load rules    │                              │  • Calculate SHA256│
-│  • Scan file     │                              │  • Calculate MD5   │
-│  • Return matches│                              └────────────────────┘
-└──────────────────┘                                         │
+       ├──────────────────┐  ├──────────────────┐  ├──────────────────┐
+       │                  │  │                  │  │                  │
+       ▼                  ▼  ▼                  ▼  ▼                  ▼
+┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+│  YaraService     │  │  HashService     │  │  EmberModel      │
+│  • Load rules    │  │  • Calculate    │  │  • Extract       │
+│  • Scan file     │  │    SHA256/MD5   │  │    features      │
+│  • Return matches│  │  • Check DB     │  │  • Predict       │
+└──────────────────┘  └──────────────────┘  └──────────────────┘                                         │
        │                                                      │
        ▼                                                      ▼
 ┌──────────────────────────────────────────────────────────────┐
@@ -225,10 +238,40 @@ Response: {
   - Transaction management
 - **Ví dụ:**
   - `AnalysisService`: CRUD cho analyses
-  - `AnalyzerService`: Orchestrate malware analysis
+  - `AnalyzerService`: Orchestrate malware analysis (YARA, Hash, EMBER, Static)
   - `YaraService`: YARA scanning logic
+  - `HashService`: Hash-based detection
+  - `StaticAnalyzerService`: PE file analysis
 
-### **3. Models** (`app/models/`)
+### **3. ML Module** (`app/ml/`) 🆕
+- **Trách nhiệm:**
+  - Machine Learning model management
+  - Feature extraction từ PE files
+  - Prediction logic
+- **Files:**
+  - `features.py`: Trích xuất 2381 features cho EMBER model
+  - `ember_model.py`: Wrapper cho EMBER LightGBM model
+  - `predictor.py`: Prediction logic wrapper
+- **Lợi ích:**
+  - Tách biệt ML code khỏi business logic
+  - Dễ thêm model mới
+  - Dễ test và maintain
+
+### **4. Utils Module** (`app/utils/`) 🆕
+- **Trách nhiệm:**
+  - Utility functions (file handling, validation)
+  - Custom exceptions
+  - Helper functions
+- **Files:**
+  - `file_utils.py`: Hash calculation, file sanitization, size formatting
+  - `validators.py`: Input validation (filename, file size, path safety)
+  - `exceptions.py`: Custom exceptions (BusinessException, NotFoundException, etc.)
+- **Lợi ích:**
+  - Dễ tìm và tái sử dụng
+  - Phân loại rõ ràng
+  - Dễ test
+
+### **5. Models** (`app/models/`)
 - **Trách nhiệm:**
   - Define data structures (dataclasses)
   - Business logic methods (e.g., `is_malware()`)
@@ -236,7 +279,7 @@ Response: {
   - Database operations
   - API handling
 
-### **4. Schemas** (`app/schemas/`)
+### **6. Schemas** (`app/schemas/`)
 - **Trách nhiệm:**
   - Input validation (Pydantic)
   - Request/Response serialization
@@ -245,7 +288,7 @@ Response: {
   - `AnalysisCreate`: Validate scan request
   - `AnalysisResponse`: Format response
 
-### **5. Core** (`app/core/`)
+### **7. Core** (`app/core/`)
 - **Trách nhiệm:**
   - Configuration management
   - Database connection pooling
@@ -334,9 +377,10 @@ CREATE TABLE ratings (
 ## 🚀 Key Features
 
 ### **1. Malware Analysis**
-- YARA rule scanning
-- PE file analysis
-- Hash-based detection
+- YARA rule scanning (564+ rules)
+- EMBER ML model prediction (LightGBM)
+- Hash-based detection (SHA256, MD5)
+- PE file static analysis
 - Suspicious string extraction
 
 ### **2. Data Management**
@@ -363,7 +407,9 @@ CREATE TABLE ratings (
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/scan` | Upload and scan file |
+| `POST` | `/api/scan` | Upload and scan file (full scan) |
+| `POST` | `/api/scan/yara` | Scan file with YARA only |
+| `POST` | `/api/scan/ember` | Scan file with EMBER ML only |
 | `GET` | `/api/analyses` | List all analyses (paginated) |
 | `GET` | `/api/analyses/{id}` | Get analysis by ID |
 | `GET` | `/api/analyses/sha256/{sha256}` | Get analysis by SHA256 |
@@ -388,7 +434,8 @@ CREATE TABLE ratings (
 4. **scan.py** saves file to `uploads/malware.exe`
 5. **AnalyzerService** starts analysis:
    - **HashService** calculates SHA256 & MD5
-   - **YaraService** scans with 500+ YARA rules
+   - **YaraService** scans with 564+ YARA rules
+   - **EmberModel** (from `ml/ember_model.py`) predicts using ML model
    - **StaticAnalyzerService** analyzes PE structure
 6. **AnalyzerService** aggregates results
 7. **AnalysisService** saves to database:
@@ -413,8 +460,9 @@ CREATE TABLE ratings (
 
 ---
 
-## 🔄 Migration Notes
+## 🔄 Refactoring History
 
+### **Phase 1: Simplified Architecture**
 **From:** Clean Architecture (domain/application/infrastructure)  
 **To:** Simplified Architecture (models/schemas/services)
 
@@ -425,8 +473,33 @@ CREATE TABLE ratings (
 - ✅ Reduced boilerplate code
 - ✅ Improved code readability
 
+### **Phase 2: Module Organization** 🆕
+**From:** Shared utilities scattered  
+**To:** Organized ML and Utils modules
+
+**Changes:**
+- ✅ Created `app/ml/` module for Machine Learning code
+  - Moved `ember_service.py` → `ml/ember_model.py`
+  - Moved `shared/ember_extractor.py` → `ml/features.py`
+  - Created `ml/predictor.py` for prediction logic
+- ✅ Created `app/utils/` module for utilities
+  - Moved `shared/utils.py` → `utils/file_utils.py`
+  - Created `utils/validators.py` for input validation
+  - Moved `shared/exceptions.py` → `utils/exceptions.py`
+- ✅ Removed `app/shared/` folder (all code migrated)
+- ✅ Removed unused services (`feature_extractor_service.py`, `ml_service.py`)
+- ✅ Removed empty folders (`database/`, `infrastructure/`, `src/`)
+
 **Benefits:**
+- ✅ Code organization: ML and Utils tách riêng, dễ tìm
+- ✅ Maintainability: Mỗi module có trách nhiệm rõ ràng
+- ✅ Scalability: Dễ thêm model/utility mới
+- ✅ Readability: Cấu trúc rõ ràng, phù hợp cho người mới
+- ✅ Clean codebase: Loại bỏ code dư thừa, không còn duplicate
+
+### **Current Architecture Benefits:**
 - Faster development
 - Easier onboarding
 - Less abstraction overhead
 - More maintainable codebase
+- Better code organization

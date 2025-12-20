@@ -1,5 +1,6 @@
 """
-Core module - Configuration và shared utilities
+Core Module - Cấu hình và tiện ích chung
+Module cốt lõi chứa settings, database, security, logging
 """
 from .config import settings
 

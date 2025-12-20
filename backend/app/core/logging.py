@@ -1,6 +1,6 @@
 """
-Logging Module - Centralized logging và monitoring
-Module này cung cấp logging structured và audit logging cho ứng dụng
+Logging Module - Quản lý logging
+Structured logging, file logging, audit logging cho toàn bộ ứng dụng
 """
 import logging
 import sys

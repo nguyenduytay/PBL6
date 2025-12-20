@@ -1,5 +1,6 @@
 """
-Analysis Service - Business logic và data access cho analyses
+Analysis Service - CRUD operations cho analyses
+Quản lý lưu trữ, tìm kiếm, thống kê các kết quả phân tích malware
 """
 import json
 from datetime import datetime

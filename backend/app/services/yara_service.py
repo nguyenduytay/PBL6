@@ -1,5 +1,6 @@
 """
-YARA Service - Xử lý YARA rules và scanning
+YARA Service - Quét file bằng YARA rules
+Load và compile YARA rules, quét file để phát hiện patterns malware
 """
 from typing import List, Dict, Any, Optional
 import yara

@@ -1,14 +1,13 @@
 """
-Main Application Entry Point - FastAPI application với Layered Architecture
-Application này sử dụng kiến trúc layered để tách biệt concerns và dễ maintain
+Main Application Entry Point - FastAPI application
+Điểm khởi đầu của ứng dụng, khởi tạo FastAPI app và các middleware
 
-Architecture:
-- Core Layer: Configuration, Security, Dependencies, Logging
-- Domain Layer: Business logic, Domain models, Services, Repository interfaces
-- Application Layer: Use cases (orchestration)
-- Infrastructure Layer: Database, Storage, Repository implementations
-- API Layer: HTTP endpoints, Request/Response handling
-- Shared: Utilities, Exceptions, Constants
+Kiến trúc:
+- Core: Configuration, Security, Database, Logging
+- Services: Business logic (phân tích malware)
+- ML: Machine Learning models (EMBER)
+- Utils: Tiện ích (file handling, validation)
+- API: HTTP endpoints
 """
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware

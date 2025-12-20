@@ -1,5 +1,5 @@
 """
-YARA Endpoints - API chuyên biệt cho quét mã độc bằng luật YARA
+YARA Endpoints - API quét malware bằng YARA rules
 """
 import os
 import time
@@ -11,7 +11,7 @@ from app.services.analyzer_service import AnalyzerService
 from app.schemas.scan import ScanResult
 
 router = APIRouter()
-analyzer_service = AnalyzerService()
+analyzer_service = AnalyzerService()  # Service phân tích malware
 
 @router.post("/scan", response_model=ScanResult)
 async def scan_yara_only(file: UploadFile = File(...)):
@@ -23,21 +23,21 @@ async def scan_yara_only(file: UploadFile = File(...)):
     - Vẫn lưu kết quả vào database (analyses table) nhưng chỉ có kết quả YARA
     """
     
-    # Save uploaded file
+    # Lưu file upload
     filepath = settings.UPLOAD_FOLDER / file.filename
     with open(filepath, "wb") as f:
         content = await file.read()
         f.write(content)
     
     try:
-        # Phân tích và lưu kết quả (chỉ chạy module yara)
+        # Chỉ quét bằng YARA rules (không chạy Hash hay EMBER)
         analysis_data = await analyzer_service.analyze_and_save(
             str(filepath),
             file.filename,
             scan_modules=["yara"]
         )
         
-        # Tạo response
+        # Tạo response từ kết quả
         result = ScanResult(
             filename=file.filename,
             sha256=analysis_data.get("sha256"),
@@ -56,6 +56,6 @@ async def scan_yara_only(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"YARA Analysis error: {str(e)}")
     finally:
-        # Cleanup
+        # Xóa file tạm sau khi xử lý
         if filepath.exists():
             os.remove(filepath)

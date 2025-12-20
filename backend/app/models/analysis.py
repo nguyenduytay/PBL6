@@ -1,5 +1,6 @@
 """
-Analysis Models - Database models cho lưu lịch sử phân tích
+Analysis Models - Data models
+Dataclasses cho Analysis và YaraMatch, dùng để lưu trữ và xử lý dữ liệu phân tích
 """
 from datetime import datetime
 from typing import Optional, List, Dict, Any

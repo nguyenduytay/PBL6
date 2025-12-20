@@ -1,6 +1,6 @@
 """
-Pydantic Schemas - Request/Response validation schemas cho Analysis
-Schemas này dùng để validate input/output của API endpoints
+Analysis Schemas - Validation cho analysis API
+Pydantic models để validate request/response của các endpoint quản lý analyses
 """
 from datetime import datetime
 from typing import Optional, List, Dict, Any

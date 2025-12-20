@@ -1,13 +1,10 @@
 """
-Hash Service
-Handles hash-based malware detection
+Hash Service - Phát hiện malware dựa trên hash
+Tính SHA256/MD5 và so sánh với malware database để phát hiện file đã biết
 """
 
 import hashlib
 from typing import List, Dict, Any, Optional
-# Temporarily disabled - src folder was removed during refactoring
-# from src.Utils.Utils import sha256_hash
-# from src.Database.Malware import get_malware_by_list_sha256
 
 
 def sha256_hash(filepath: str) -> Optional[str]:

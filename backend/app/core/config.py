@@ -1,6 +1,6 @@
 """
-Configuration Module - Application settings và configuration management
-Module này quản lý tất cả các cấu hình của ứng dụng, load từ environment variables
+Configuration Module - Quản lý cấu hình ứng dụng
+Load settings từ environment variables (.env), quản lý YARA rules, database, CORS
 """
 import os
 from pathlib import Path
@@ -186,12 +186,9 @@ class Settings:
         
         if static_analyzer is None:
             try:
-                # Temporarily disabled - src folder was removed during refactoring
-                # from src.Analysis.StaticAnalyzer import create_static_analyzer
-                # settings = cls()
-                # rules_path = str(settings.YARA_RULES_PATH) if settings.YARA_RULES_PATH.exists() else None
-                # static_analyzer = create_static_analyzer(rules_path)
-                # print("[OK] Static Analyzer initialized")
+                # Static Analyzer được khởi tạo trong StaticAnalyzerService
+                # Không cần khởi tạo ở đây nữa
+                pass
                 print("[INFO] Static Analyzer disabled - src folder removed during refactoring")
                 static_analyzer = None
             except Exception as e:

@@ -1,5 +1,6 @@
 """
-Database connection - Quản lý kết nối database
+Database Module - Quản lý kết nối MySQL
+Connection pooling với aiomysql, tự động tạo database và tables
 """
 import os
 import aiomysql

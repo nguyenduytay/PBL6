@@ -1,6 +1,6 @@
 """
-Security Module - Authentication, Authorization, và Security Utilities
-Module này chứa các hàm xử lý bảo mật như JWT, password hashing, và role-based access control
+Security Module - Bảo mật và xác thực
+JWT tokens, password hashing (bcrypt), role-based access control (RBAC)
 """
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
