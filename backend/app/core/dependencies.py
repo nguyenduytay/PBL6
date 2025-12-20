@@ -58,11 +58,11 @@ def get_request_id(request: Request) -> str:
         async def endpoint(request_id: str = Depends(get_request_id)):
             logger.info(f"Processing request {request_id}")
     """
-    # Check nếu có request ID trong header
+    # Kiểm tra request ID trong header
     request_id = request.headers.get("X-Request-ID")
     
     if not request_id:
-        # Generate new request ID
+        # Tạo request ID mới nếu chưa có
         import uuid
         request_id = str(uuid.uuid4())
     

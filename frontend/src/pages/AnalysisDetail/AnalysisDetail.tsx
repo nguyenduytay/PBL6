@@ -216,7 +216,7 @@ const AnalysisDetail: React.FC = () => {
                           ))}
                           {match.matched_strings.length > 10 && (
                             <p className="text-xs text-gray-500 text-center">
-                              ... và {match.matched_strings.length - 10} chuỗi khác
+                              {t('analysisDetail.andMoreMatchedStrings', { count: match.matched_strings.length - 10 })}
                             </p>
                           )}
                         </div>
@@ -259,11 +259,11 @@ const AnalysisDetail: React.FC = () => {
               const malwareTypes: string[] = []
               analysis.yara_matches?.forEach(m => {
                 const tags = Array.isArray(m.tags) ? m.tags : (typeof m.tags === 'string' ? m.tags.split(',') : [])
-                if (tags.some((t: string) => t.toLowerCase().includes('trojan'))) malwareTypes.push('Trojan')
-                if (tags.some((t: string) => t.toLowerCase().includes('stealer'))) malwareTypes.push('InfoStealer')
-                if (tags.some((t: string) => t.toLowerCase().includes('backdoor'))) malwareTypes.push('Backdoor')
-                if (tags.some((t: string) => t.toLowerCase().includes('ransomware'))) malwareTypes.push('Ransomware')
-                if (tags.some((t: string) => t.toLowerCase().includes('keylogger'))) malwareTypes.push('Keylogger')
+                if (tags.some((t: string) => t.toLowerCase().includes('trojan'))) malwareTypes.push(t('analysisDetail.malwareTypeTrojan'))
+                if (tags.some((t: string) => t.toLowerCase().includes('stealer'))) malwareTypes.push(t('analysisDetail.malwareTypeInfoStealer'))
+                if (tags.some((t: string) => t.toLowerCase().includes('backdoor'))) malwareTypes.push(t('analysisDetail.malwareTypeBackdoor'))
+                if (tags.some((t: string) => t.toLowerCase().includes('ransomware'))) malwareTypes.push(t('analysisDetail.malwareTypeRansomware'))
+                if (tags.some((t: string) => t.toLowerCase().includes('keylogger'))) malwareTypes.push(t('analysisDetail.malwareTypeKeylogger'))
               })
               const uniqueTypes = [...new Set(malwareTypes)]
               
@@ -329,8 +329,8 @@ const AnalysisDetail: React.FC = () => {
                     <p className="text-sm text-gray-300 leading-relaxed">{recommendation}</p>
                   </div>
                   <div className="text-xs text-gray-500 italic">
-                    <p className="font-semibold mb-1">Lưu ý quan trọng:</p>
-                    <p>YARA là công cụ phân tích tĩnh dựa trên mẫu. Kết quả YARA chỉ là một phần của quy trình phân tích mã độc hoàn chỉnh. Cần kết hợp với các phương pháp khác: phân tích động, phân tích memory, reverse engineering.</p>
+                    <p className="font-semibold mb-1">{t('analysisDetail.importantNote')}:</p>
+                    <p>{t('analysisDetail.yaraLimitationNote')}</p>
                   </div>
                 </div>
               )
@@ -404,7 +404,7 @@ const AnalysisDetail: React.FC = () => {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <p className="font-medium text-red-400 mb-1">
-                          {t('upload.emberError') || 'EMBER Error'}
+                          {t('upload.emberError')}
                         </p>
                         <p className="text-sm text-red-300 mb-2">{item.message || item.error}</p>
                         {item.error_detail && (
@@ -449,7 +449,7 @@ const AnalysisDetail: React.FC = () => {
                             ? 'text-yellow-400'
                             : 'text-green-400'
                         }`}>
-                          {t('upload.emberResult') || 'EMBER Analysis'}
+                          {t('upload.emberResult')}
                         </p>
                         <p className="text-sm text-gray-300 mb-2">{item.message}</p>
                         {item.score !== undefined && (
@@ -478,7 +478,7 @@ const AnalysisDetail: React.FC = () => {
                     className="p-4 bg-yellow-900/20 border border-yellow-600 rounded-lg"
                   >
                     <p className="font-medium text-yellow-400 mb-1">
-                      {t('upload.yaraMatch') || 'YARA Match'}
+                      {t('upload.yaraMatch')}
                     </p>
                     <p className="text-sm text-gray-300">{item.message || item.matches}</p>
                     {item.infoUrl && (

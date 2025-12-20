@@ -15,24 +15,24 @@ class StaticAnalyzer:
         self.min_string_length = 4
         self.max_string_length = 200
         
-        # Patterns để detect suspicious strings
+        # Patterns để phát hiện strings đáng ngờ
         self.suspicious_patterns = [
             r'http[s]?://[^\s]+',  # URLs
             r'ftp://[^\s]+',  # FTP URLs
             r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}',  # Email
-            r'[A-Z]:\\[^\\s]+',  # Windows paths
+            r'[A-Z]:\\[^\\s]+',  # Đường dẫn Windows
             r'\\\\[^\\s]+',  # UNC paths
             r'HKEY_[A-Z_]+',  # Registry keys
-            r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}',  # IP addresses
-            r'[0-9a-fA-F]{32,}',  # Long hex strings (hashes)
-            r'cmd\.exe|powershell|wscript|cscript',  # Command execution
+            r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}',  # Địa chỉ IP
+            r'[0-9a-fA-F]{32,}',  # Hex strings dài (hashes)
+            r'cmd\.exe|powershell|wscript|cscript',  # Thực thi lệnh
             r'CreateRemoteThread|VirtualAlloc|WriteProcessMemory',  # API calls
             r'base64|Base64',  # Encoding
-            r'password|pwd|passwd|secret|key',  # Credentials
-            r'\.dll|\.exe|\.sys|\.bat|\.ps1',  # Executable extensions
+            r'password|pwd|passwd|secret|key',  # Thông tin xác thực
+            r'\.dll|\.exe|\.sys|\.bat|\.ps1',  # File thực thi
         ]
         
-        # Suspicious keywords
+        # Từ khóa đáng ngờ
         self.suspicious_keywords = [
             'malware', 'trojan', 'virus', 'backdoor', 'keylogger',
             'ransomware', 'spyware', 'rootkit', 'botnet', 'exploit',
@@ -121,13 +121,13 @@ class StaticAnalyzer:
     
     def _extract_strings(self, content: bytes) -> List[str]:
         """
-        Extract printable strings từ binary content
-        Filter các strings đáng nghi ngờ
+        Trích xuất strings có thể đọc được từ binary
+        Lọc các strings đáng nghi ngờ
         """
         strings = []
         seen = set()
         
-        # Extract ASCII strings (4+ characters)
+        # Trích xuất ASCII strings (>= 4 ký tự)
         current_string = []
         for byte in content:
             if 32 <= byte <= 126:  # Printable ASCII
@@ -137,12 +137,12 @@ class StaticAnalyzer:
                     s = ''.join(current_string)
                     if len(s) <= self.max_string_length and s not in seen:
                         seen.add(s)
-                        # Check if suspicious
+                        # Kiểm tra có đáng ngờ không
                         if self._is_suspicious_string(s):
                             strings.append(s)
                 current_string = []
         
-        # Check last string
+        # Kiểm tra string cuối cùng
         if len(current_string) >= self.min_string_length:
             s = ''.join(current_string)
             if len(s) <= self.max_string_length and s not in seen:
@@ -150,7 +150,7 @@ class StaticAnalyzer:
                 if self._is_suspicious_string(s):
                     strings.append(s)
         
-        # Extract Unicode strings (UTF-16 LE)
+        # Trích xuất Unicode strings (UTF-16 LE)
         try:
             unicode_content = content.decode('utf-16le', errors='ignore')
             for match in re.finditer(r'[\x20-\x7E]{4,}', unicode_content):
@@ -162,48 +162,48 @@ class StaticAnalyzer:
         except:
             pass
         
-        # Sort by length (longer strings first) and limit
+        # Sắp xếp theo độ dài (dài nhất trước) và giới hạn
         strings.sort(key=len, reverse=True)
-        return strings[:100]  # Limit to 100 most suspicious strings
+        return strings[:100]  # Giới hạn 100 strings đáng ngờ nhất
     
     def _is_suspicious_string(self, s: str) -> bool:
-        """Check if string is suspicious"""
+        """Kiểm tra string có đáng ngờ không"""
         s_lower = s.lower()
         
-        # Check patterns
+        # Kiểm tra patterns
         for pattern in self.suspicious_patterns:
             if re.search(pattern, s, re.IGNORECASE):
                 return True
         
-        # Check keywords
+        # Kiểm tra keywords
         for keyword in self.suspicious_keywords:
             if keyword in s_lower:
                 return True
         
-        # Check for high entropy (random-looking strings)
+        # Kiểm tra entropy cao (strings ngẫu nhiên)
         if len(s) >= 16 and self._has_high_entropy(s):
             return True
         
         return False
     
     def _has_high_entropy(self, s: str) -> bool:
-        """Check if string has high entropy (random-looking)"""
+        """Kiểm tra string có entropy cao (ngẫu nhiên) không"""
         import math
         if not s:
             return False
         
-        # Calculate Shannon entropy
+        # Tính Shannon entropy
         entropy = 0
         for char in set(s):
             p = s.count(char) / len(s)
             if p > 0:
                 entropy -= p * math.log2(p)
         
-        # High entropy threshold (random strings have ~4.5-5.0 entropy for base64)
+        # Ngưỡng entropy cao (strings ngẫu nhiên có ~4.5-5.0 entropy cho base64)
         return entropy > 4.0
     
     def _analyze_pe_file(self, filepath: str, content: bytes) -> Optional[Dict[str, Any]]:
-        """Analyze PE file structure"""
+        """Phân tích cấu trúc file PE"""
         try:
             pe = pefile.PE(filepath, fast_load=True)
             
@@ -216,7 +216,7 @@ class StaticAnalyzer:
                 "suspicious_features": []
             }
             
-            # Sections
+            # Phân tích sections
             for section in pe.sections:
                 try:
                     section_data = {
@@ -228,13 +228,13 @@ class StaticAnalyzer:
                     }
                     pe_info["sections"].append(section_data)
                     
-                    # Check for high entropy (packed)
+                    # Kiểm tra entropy cao (có thể bị pack)
                     if section_data["entropy"] > 7.0:
                         pe_info["suspicious_features"].append("High entropy section (possibly packed)")
                 except:
                     continue
             
-            # Imports
+            # Phân tích imports (các hàm được import)
             try:
                 if hasattr(pe, 'DIRECTORY_ENTRY_IMPORT'):
                     for entry in pe.DIRECTORY_ENTRY_IMPORT:
@@ -248,7 +248,7 @@ class StaticAnalyzer:
             except:
                 pass
             
-            # Exports
+            # Phân tích exports (các hàm được export)
             try:
                 if hasattr(pe, 'DIRECTORY_ENTRY_EXPORT'):
                     for exp in pe.DIRECTORY_ENTRY_EXPORT.symbols:
@@ -267,7 +267,7 @@ class StaticAnalyzer:
             return None
     
     def _calculate_entropy(self, data: bytes) -> float:
-        """Calculate Shannon entropy of data"""
+        """Tính Shannon entropy của data"""
         import math
         if not data:
             return 0.0
@@ -282,29 +282,29 @@ class StaticAnalyzer:
         return entropy
     
     def _extract_capabilities(self, pe_info: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Extract capabilities from PE info"""
+        """Trích xuất khả năng từ thông tin PE"""
         capabilities = []
         
         if not pe_info or "imports" not in pe_info:
             return capabilities
         
-        # Network capabilities
+        # Khả năng mạng
         network_dlls = ['ws2_32.dll', 'wininet.dll', 'winhttp.dll', 'urlmon.dll']
         network_functions = ['socket', 'connect', 'send', 'recv', 'http', 'download']
         
-        # File system capabilities
+        # Khả năng file system
         file_dlls = ['kernel32.dll']
         file_functions = ['CreateFile', 'WriteFile', 'ReadFile', 'DeleteFile', 'CopyFile']
         
-        # Registry capabilities
+        # Khả năng registry
         registry_functions = ['RegOpenKey', 'RegSetValue', 'RegCreateKey', 'RegDeleteKey']
         
-        # Process manipulation
+        # Thao tác process
         process_functions = ['CreateProcess', 'CreateRemoteThread', 'OpenProcess', 'TerminateProcess']
         
         imports = pe_info.get("imports", [])
         
-        # Check for network
+        # Kiểm tra khả năng mạng
         has_network = any(
             any(net_dll in imp.get("dll", "").lower() for net_dll in network_dlls) or
             any(net_func in imp.get("function", "").lower() for net_func in network_functions)
@@ -313,7 +313,7 @@ class StaticAnalyzer:
         if has_network:
             capabilities.append({"type": "network", "description": "Network communication"})
         
-        # Check for file operations
+        # Kiểm tra thao tác file
         has_file_ops = any(
             any(file_func in imp.get("function", "").lower() for file_func in file_functions)
             for imp in imports
@@ -321,7 +321,7 @@ class StaticAnalyzer:
         if has_file_ops:
             capabilities.append({"type": "file_system", "description": "File system operations"})
         
-        # Check for registry
+        # Kiểm tra registry
         has_registry = any(
             any(reg_func in imp.get("function", "").lower() for reg_func in registry_functions)
             for imp in imports
@@ -329,7 +329,7 @@ class StaticAnalyzer:
         if has_registry:
             capabilities.append({"type": "registry", "description": "Registry manipulation"})
         
-        # Check for process manipulation
+        # Kiểm tra thao tác process
         has_process = any(
             any(proc_func in imp.get("function", "").lower() for proc_func in process_functions)
             for imp in imports

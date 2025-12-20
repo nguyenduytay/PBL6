@@ -201,6 +201,7 @@
     "noDetailedResultsHint": "Phân tích này có thể được tạo trước khi tính năng hiển thị chi tiết được thêm vào. Vui lòng quét lại file để xem kết quả chi tiết.",
     "noResultsFound": "Không tìm thấy kết quả phân tích",
     "andMoreStrings": "... và {{count}} chuỗi khác",
+    "andMoreMatchedStrings": "... và {{count}} chuỗi khác",
     "matchedStrings": "Chuỗi đã khớp",
     "matchedStringsInfo": "Các chuỗi/pattern đã khớp trong rule này",
     "stringIdentifier": "Identifier",
@@ -225,7 +226,14 @@
     "recommendClean": "File này không khớp với các mẫu mã độc đã biết. Lưu ý: YARA không khớp KHÔNG CÓ NGHĨA file là an toàn. Nên kết hợp với các phương pháp phân tích khác.",
     "yaraVersion": "Phiên bản YARA",
     "ruleSetName": "Bộ rule YARA",
-    "scanInfo": "Thông tin quét"
+    "scanInfo": "Thông tin quét",
+    "malwareTypeTrojan": "Trojan",
+    "malwareTypeInfoStealer": "InfoStealer",
+    "malwareTypeBackdoor": "Backdoor",
+    "malwareTypeRansomware": "Ransomware",
+    "malwareTypeKeylogger": "Keylogger",
+    "importantNote": "Lưu ý quan trọng",
+    "yaraLimitationNote": "YARA là công cụ phân tích tĩnh dựa trên mẫu. Kết quả YARA chỉ là một phần của quy trình phân tích mã độc hoàn chỉnh. Cần kết hợp với các phương pháp khác: phân tích động, phân tích memory, reverse engineering."
   },
   "batchScan": {
     "title": "Quét hàng loạt",

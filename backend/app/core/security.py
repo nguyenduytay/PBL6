@@ -91,12 +91,15 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     """
     to_encode = data.copy()
     
+    # Tính thời gian hết hạn
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     
+    # Thêm thời gian hết hạn vào payload
     to_encode.update({"exp": expire})
+    # Mã hóa JWT token
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
@@ -119,9 +122,11 @@ def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
         >>> user_id = payload.get("user_id")
     """
     try:
+        # Giải mã và xác thực JWT token
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
     except JWTError:
+        # Token không hợp lệ hoặc đã hết hạn
         return None
 
 
@@ -157,6 +162,7 @@ class JWTBearer(HTTPBearer):
         credentials: HTTPAuthorizationCredentials = await super(JWTBearer, self).__call__(request)
         
         if credentials:
+            # Xác thực token
             if not self.verify_jwt(credentials.credentials):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -164,6 +170,7 @@ class JWTBearer(HTTPBearer):
                 )
             return credentials.credentials
         else:
+            # Không có credentials
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Invalid authorization code"

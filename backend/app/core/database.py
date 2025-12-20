@@ -18,7 +18,7 @@ class Database:
         db_name = os.getenv("DB_NAME", "malwaredetection")
         
         try:
-            # Kết nối vào MySQL server (không chỉ định database)
+            # Kết nối vào MySQL server (không chỉ định database cụ thể)
             temp_pool = await aiomysql.create_pool(
                 user=os.getenv("DB_USER", "sa"),
                 password=os.getenv("DB_PASSWORD", "123456"),
@@ -36,12 +36,13 @@ class Database:
                     result = await cursor.fetchone()
                     
                     if not result:
-                        # Tạo database nếu chưa tồn tại
+                        # Tạo database mới với UTF-8 encoding
                         await cursor.execute(f"CREATE DATABASE `{db_name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
                         print(f"[OK] Database '{db_name}' created successfully")
                     else:
                         print(f"[INFO] Database '{db_name}' already exists")
             
+            # Đóng pool tạm
             temp_pool.close()
             await temp_pool.wait_closed()
             return True
@@ -52,8 +53,9 @@ class Database:
             return False
     
     async def connect(self):
-        """Tạo connection pool"""
+        """Tạo connection pool để quản lý kết nối database"""
         if not self.pool:
+            # Tạo pool với min 1, max 5 connections
             self.pool = await aiomysql.create_pool(
                 user=os.getenv("DB_USER", "sa"),
                 password=os.getenv("DB_PASSWORD", "123456"),
@@ -61,8 +63,8 @@ class Database:
                 db=os.getenv("DB_NAME", "malwaredetection"),
                 port=int(os.getenv("DB_PORT", "3306")),
                 autocommit=True,
-                minsize=1,
-                maxsize=5
+                minsize=1,  # Số connection tối thiểu
+                maxsize=5   # Số connection tối đa
             )
         return self.pool
     
@@ -113,7 +115,7 @@ async def init_database():
     try:
         async with pool.acquire() as conn:
             async with conn.cursor() as cursor:
-                # Tạo bảng analyses
+                # Tạo bảng analyses - lưu kết quả phân tích
                 await cursor.execute("""
                     CREATE TABLE IF NOT EXISTS analyses (
                         id INT PRIMARY KEY AUTO_INCREMENT,
@@ -136,14 +138,14 @@ async def init_database():
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """)
                 
-                # Thêm cột results nếu chưa có (migration)
+                # Migration: Thêm cột results nếu chưa có
                 try:
                     await cursor.execute("ALTER TABLE analyses ADD COLUMN results JSON")
                     print("[INFO] Added 'results' column to analyses table")
                 except Exception:
                     pass  # Column đã tồn tại
                 
-                # Tạo bảng yara_matches
+                # Tạo bảng yara_matches - lưu chi tiết YARA matches
                 await cursor.execute("""
                     CREATE TABLE IF NOT EXISTS yara_matches (
                         id INT PRIMARY KEY AUTO_INCREMENT,
@@ -161,7 +163,7 @@ async def init_database():
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """)
                 
-                # Thêm các cột mới nếu chưa có (migration)
+                # Migration: Thêm các cột mới nếu chưa có
                 try:
                     await cursor.execute("ALTER TABLE yara_matches ADD COLUMN author TEXT")
                 except Exception:
@@ -175,7 +177,7 @@ async def init_database():
                 except Exception:
                     pass  # Column đã tồn tại
                 
-                # Tạo bảng ratings
+                # Tạo bảng ratings - lưu đánh giá của người dùng
                 await cursor.execute("""
                     CREATE TABLE IF NOT EXISTS ratings (
                         id INT PRIMARY KEY AUTO_INCREMENT,

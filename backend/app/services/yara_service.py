@@ -43,21 +43,22 @@ class YaraService:
             results = []
             match_details = []
             
+            # Tạo danh sách match đơn giản cho hiển thị
             for match in matches:
                 rule_info = str(match.rule)
                 
-                # Add tags if available
+                # Thêm tags nếu có
                 if hasattr(match, 'tags') and match.tags:
                     rule_info += f" (tags: {', '.join(match.tags)})"
                 
-                # Add description if available
+                # Thêm mô tả nếu có
                 if hasattr(match, 'meta') and match.meta:
                     if 'description' in match.meta:
                         rule_info += f" - {match.meta['description']}"
                 
                 match_details.append(rule_info)
             
-            # Return detailed matches for database storage
+            # Tạo danh sách match chi tiết để lưu database
             detailed_matches = []
             for match in matches:
                 match_obj = {
@@ -69,16 +70,16 @@ class YaraService:
                     "matched_strings": []
                 }
                 
-                # Extract meta information
+                # Lấy thông tin meta (mô tả, tác giả, tham khảo)
                 if hasattr(match, 'meta') and match.meta:
                     match_obj["description"] = match.meta.get('description')
                     match_obj["author"] = match.meta.get('author')
                     match_obj["reference"] = match.meta.get('reference')
                 
-                # Extract matched strings
+                # Lấy các strings đã khớp
                 if hasattr(match, 'strings') and match.strings:
                     for s in match.strings:
-                        # yara.StringMatch object has attributes: identifier, offset, data
+                        # yara.StringMatch có attributes: identifier, offset, data
                         string_info = {
                             "identifier": getattr(s, 'identifier', None),
                             "offset": getattr(s, 'offset', None),
@@ -86,17 +87,16 @@ class YaraService:
                             "data_preview": None
                         }
                         
-                        # Get data (bytes)
+                        # Lấy data (bytes)
                         data = getattr(s, 'data', None)
                         if data:
                             if isinstance(data, bytes):
                                 string_info["data"] = data.hex()
-                                # Try to decode as string for preview
+                                # Thử decode thành string để preview
                                 try:
-                                    # Try ASCII
                                     decoded = data.decode('ascii', errors='ignore')
                                     if decoded and decoded.isprintable() and len(decoded) > 0:
-                                        string_info["data_preview"] = decoded[:100]  # Limit preview
+                                        string_info["data_preview"] = decoded[:100]  # Giới hạn preview
                                 except:
                                     pass
                             else:
@@ -111,8 +111,8 @@ class YaraService:
                 "file": filepath,
                 "matches": ", ".join(match_details),
                 "rule_count": len(matches),
-                "detailed_matches": detailed_matches,  # For database storage
-                "infoUrl": None  # Will be filled by analyzer service
+                "detailed_matches": detailed_matches,  # Để lưu database
+                "infoUrl": None  # Sẽ được điền bởi analyzer service
             })
             
             return results
@@ -123,7 +123,7 @@ class YaraService:
             traceback.print_exc()
             return [{
                 "type": "yara_error",
-                "message": f"Loi quet YARA: {str(e)}",
+                "message": f"Lỗi quét YARA: {str(e)}",
                 "infoUrl": None
             }]
     

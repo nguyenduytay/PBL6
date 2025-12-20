@@ -203,6 +203,7 @@
     "noDetailedResults": "No detailed analysis results",
     "noDetailedResultsHint": "This analysis may have been created before the detailed results feature was added. Please scan the file again to see detailed results.",
     "noResultsFound": "No analysis results found",
+    "andMoreMatchedStrings": "... and {{count}} more strings",
     "matchedStrings": "Matched Strings",
     "matchedStringsInfo": "Strings/patterns that matched in this rule",
     "stringIdentifier": "Identifier",
@@ -227,7 +228,14 @@
     "recommendClean": "This file does not match known malware patterns. Note: YARA no match DOES NOT MEAN file is safe. Should combine with other analysis methods.",
     "yaraVersion": "YARA Version",
     "ruleSetName": "YARA Rule Set",
-    "scanInfo": "Scan Information"
+    "scanInfo": "Scan Information",
+    "malwareTypeTrojan": "Trojan",
+    "malwareTypeInfoStealer": "InfoStealer",
+    "malwareTypeBackdoor": "Backdoor",
+    "malwareTypeRansomware": "Ransomware",
+    "malwareTypeKeylogger": "Keylogger",
+    "importantNote": "Important Note",
+    "yaraLimitationNote": "YARA is a static analysis tool based on patterns. YARA results are only part of a complete malware analysis process. Should combine with other methods: dynamic analysis, memory analysis, reverse engineering."
   },
   "batchScan": {
     "title": "Batch Scan",

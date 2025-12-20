@@ -47,19 +47,20 @@ class AnalyzerService:
         results = []
         sha256 = None  # Chỉ tính khi cần
         
-        # 1) Hash-based detection (chỉ chạy nếu "hash" trong scan_modules)
+        # 1) Phát hiện dựa trên hash (kiểm tra hash trong database)
         if "hash" in scan_modules:
             hash_results = await self.hash_service.check_hash(filepath)
             results.extend(hash_results)
         
+        # 2) Quét YARA - phát hiện malware dựa trên patterns
         if "yara" in scan_modules:
-            # 2) YARA scan - Tính SHA256 chỉ khi cần cho YARA results
+            # Tính SHA256 để tạo infoUrl
             if sha256 is None:
                 sha256 = self.hash_service.calculate_hash(filepath)
             
             yara_results = self.yara_service.scan_file(filepath)
             
-            # Add SHA256 to YARA results for infoUrl
+            # Thêm link tham khảo từ bazaar.abuse.ch
             if yara_results and sha256:
                 for result in yara_results:
                     if result.get("type") == "yara" and not result.get("infoUrl"):
@@ -67,12 +68,13 @@ class AnalyzerService:
             
             results.extend(yara_results)
 
+        # 3) Phân tích EMBER - sử dụng machine learning
         if "ember" in scan_modules:
-            # 3) EMBER scan - Sử dụng ML module mới
             ember_result = self.ember_model.predict(filepath)
             
             # Luôn trả về kết quả EMBER (có score) dù có phát hiện malware hay không
             if ember_result.get("error"):
+                # Xử lý lỗi EMBER
                 error_detail = {
                     "type": "ember_error",
                     "message": f"[ERROR] EMBER prediction failed: {ember_result.get('error')}",
@@ -88,6 +90,7 @@ class AnalyzerService:
                     error_detail["file_path"] = ember_result.get("file_path")
                 results.append(error_detail)
             elif ember_result.get("is_malware"):
+                # Phát hiện malware
                 results.append({
                     "type": "model",
                     "subtype": "ember",
@@ -97,7 +100,7 @@ class AnalyzerService:
                     "infoUrl": None 
                 })
             else:
-                # File sạch nhưng vẫn trả về score để người dùng biết
+                # File sạch nhưng vẫn trả về score
                 results.append({
                     "type": "model",
                     "subtype": "ember",
@@ -107,11 +110,11 @@ class AnalyzerService:
                     "infoUrl": None
                 })
         
-        # 4) Nếu không phát hiện gì (không có module nào chạy hoặc tất cả đều clean)
+        # 4) Nếu không phát hiện gì
         if not results:
             results.append({
                 "type": "clean",
-                "message": "[OK] Khong phat hien malware",
+                "message": "[OK] Không phát hiện malware",
                 "infoUrl": None
             })
         

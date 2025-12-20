@@ -128,7 +128,7 @@ async def scan_ember(file: UploadFile = File(...)):
         f.write(await file.read())
     
     try:
-        # Kiểm tra file có phải PE không (validation giống script test)
+        # Kiểm tra file có phải PE không (EMBER chỉ phân tích PE files)
         from app.ml.ember_model import EmberModel
         ember_model = EmberModel()
         is_pe, pe_error_detail = ember_model.is_pe_file(str(filepath))

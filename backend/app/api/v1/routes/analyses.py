@@ -39,7 +39,7 @@ async def get_analyses(
     try:
         # Lấy danh sách analyses với pagination
         analyses = await analysis_service.get_all(limit=limit, offset=offset)
-        total = await analysis_service.count_all()  # Tổng số analyses
+        total = await analysis_service.count_all()  # Tổng số analyses trong database
         
         return {
             "items": analyses,
@@ -94,7 +94,7 @@ async def delete_analysis(analysis_id: int):
         if not analysis:
             raise HTTPException(status_code=404, detail="Analysis not found")
         
-        # Xóa analysis và các dữ liệu liên quan (yara_matches, ratings)
+        # Xóa analysis và các dữ liệu liên quan (yara_matches, ratings) - CASCADE
         deleted = await analysis_service.delete(analysis_id)
         if not deleted:
             raise HTTPException(status_code=500, detail="Failed to delete analysis")

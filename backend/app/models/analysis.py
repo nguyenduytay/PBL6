@@ -59,6 +59,7 @@ class Analysis:
             >>> if analysis.is_malware():
             ...     print("Malware detected!")
         """
+        # File là malware nếu được đánh dấu hoặc có YARA matches
         return self.malware_detected or len(self.yara_matches) > 0
     
     def get_severity(self) -> str:
@@ -73,18 +74,20 @@ class Analysis:
             >>> if severity == "critical":
             ...     send_alert()
         """
+        # File sạch nếu không phát hiện malware
         if not self.is_malware():
             return "clean"
         
-        # Nếu có nhiều YARA matches, severity cao hơn
+        # Phân loại severity dựa trên số lượng YARA matches
+        # Nhiều matches = mức độ nghi ngờ cao hơn
         if len(self.yara_matches) >= 5:
-            return "critical"
+            return "critical"  # Rất nghiêm trọng
         elif len(self.yara_matches) >= 3:
-            return "high"
+            return "high"  # Cao
         elif len(self.yara_matches) >= 1:
-            return "medium"
+            return "medium"  # Trung bình
         else:
-            return "low"
+            return "low"  # Thấp
 
 
 @dataclass

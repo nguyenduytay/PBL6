@@ -46,6 +46,7 @@ class EmberModel:
             print(f"[INFO] Threshold: {self.threshold}")
             
         except Exception as e:
+            # Lỗi khi load model
             print(f"[ERROR] Failed to load EMBER model: {e}")
             print(f"[ERROR] Model path: {self.model_path}")
             self.model = None
@@ -81,6 +82,7 @@ class EmberModel:
                 if header == b'MZ':
                     return True, None
                 else:
+                    # Header không đúng format PE
                     header_hex = header.hex().upper() if len(header) == 2 else "N/A"
                     return False, f"Invalid PE header. Expected 'MZ' (0x4D5A), got: {header_hex} (first 2 bytes: {header})"
         except PermissionError as e:
@@ -107,7 +109,7 @@ class EmberModel:
                 "model_name": self.model_filename
             }
         
-        # Kiểm tra file có phải PE không (giống script test)
+        # Kiểm tra file có phải PE không
         is_pe, pe_error_detail = self.is_pe_file(file_path)
         if not is_pe:
             error_msg = f"File is not a valid PE file. EMBER only analyzes PE files (Portable Executable: .exe, .dll, .sys, .scr, etc.). PE files must start with 'MZ' header."
@@ -127,15 +129,16 @@ class EmberModel:
             with open(file_path, "rb") as f:
                 bytez = f.read()
             
-            # Trích xuất features từ file PE (2381 features)
+            # Trích xuất 2381 features từ file PE
             features = self.extractor.feature_vector(bytez)
             
             # Reshape để predict (1 sample, n features)
             features = features.reshape(1, -1)
             
-            # Dự đoán bằng model
+            # Dự đoán bằng LightGBM model
             score = self.model.predict(features)[0]
             
+            # So sánh với threshold để xác định malware
             return {
                 "score": float(score),
                 "is_malware": score > self.threshold,
@@ -149,7 +152,7 @@ class EmberModel:
             print(f"[ERROR] EMBER prediction failed for {file_path}: {e}")
             print(error_traceback)
             
-            # Phân loại lỗi chi tiết
+            # Phân loại lỗi chi tiết để dễ debug
             error_type = type(e).__name__
             error_message = str(e)
             

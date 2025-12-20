@@ -47,6 +47,7 @@ class AnalysisBase(BaseModel):
         Returns:
             str: Sanitized filename
         """
+        # Escape HTML để tránh XSS, loại bỏ khoảng trắng thừa
         return html.escape(v.strip())
 
 
@@ -69,6 +70,7 @@ class AnalysisUpdate(BaseModel):
     Schema để update analysis - Dùng trong PUT /api/analyses/{id}
     Tất cả fields đều optional để chỉ update những field cần thiết
     """
+    # Tất cả fields đều optional - chỉ update những field được gửi lên
     filename: Optional[str] = Field(None, min_length=1, max_length=255)
     malware_detected: Optional[bool] = None
     yara_matches: Optional[List[Dict[str, Any]]] = None
@@ -98,11 +100,11 @@ class AnalysisResponse(AnalysisBase):
     upload_time: Optional[datetime] = Field(None, description="Thời gian upload")
     
     class Config:
-        """Pydantic config"""
-        from_attributes = True
-        populate_by_name = True
+        """Pydantic config - Cấu hình serialization"""
+        from_attributes = True  # Cho phép tạo từ ORM objects
+        populate_by_name = True  # Cho phép dùng alias hoặc tên field
         json_encoders = {
-            datetime: lambda v: v.isoformat()
+            datetime: lambda v: v.isoformat()  # Chuyển datetime sang ISO format
         }
 
 

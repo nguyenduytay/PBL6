@@ -44,7 +44,7 @@ async def export_analyses_csv(
             'id', 'filename', 'sha256', 'md5', 'file_size', 
             'malware_detected', 'analysis_time', 'created_at'
         ])
-        writer.writeheader()  # Ghi header
+        writer.writeheader()  # Ghi tiêu đề cột
         
         # Ghi từng dòng dữ liệu
         for analysis in analyses:
@@ -174,7 +174,7 @@ async def export_analyses_excel(
             # Lưu workbook vào bộ nhớ đệm
             output = BytesIO()
             wb.save(output)
-            output.seek(0)  # Reset pointer về đầu file
+            output.seek(0)  # Reset pointer về đầu file để đọc
             
             return Response(
                 content=output.getvalue(),

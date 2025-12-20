@@ -46,7 +46,7 @@ async def search_analyses(
         
         # Tìm kiếm theo filename, SHA256, hoặc MD5
         results = await analysis_service.search(query, limit=limit, offset=offset)
-        total = await analysis_service.count_search(query)  # Tổng số kết quả
+        total = await analysis_service.count_search(query)  # Tổng số kết quả tìm được
         
         if not results:
             # Trả về danh sách trống nếu không tìm thấy

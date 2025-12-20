@@ -36,17 +36,17 @@ def setup_logging(log_level: str = "INFO", log_file: Optional[str] = None) -> lo
     logger = logging.getLogger("malware_detector")
     logger.setLevel(getattr(logging, log_level.upper()))
     
-    # Clear existing handlers
+    # Xóa các handlers cũ để tránh duplicate logs
     logger.handlers.clear()
     
-    # Console handler
+    # Handler cho console (stdout)
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(getattr(logging, log_level.upper()))
     console_formatter = logging.Formatter(LOG_FORMAT, DATE_FORMAT)
     console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
     
-    # File handler (nếu có)
+    # Handler cho file (nếu có)
     if log_file:
         file_path = LOGS_DIR / log_file
         file_handler = logging.FileHandler(file_path, encoding="utf-8")

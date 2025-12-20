@@ -123,17 +123,19 @@ class Settings:
                         error_on_warning=False
                     )
                 except TypeError:
-                    # Nếu error_on_warning không được support, dùng cách khác
+                    # Nếu error_on_warning không được support, thử cách khác
                     try:
                         yara_rules = yara.compile(filepath=str(settings.YARA_RULES_PATH), includes=True)
                     except:
-                        # Fallback: compile trực tiếp
+                        # Fallback: compile trực tiếp không có includes
                         yara_rules = yara.compile(filepath=str(settings.YARA_RULES_PATH))
                 
+                # Đếm số lượng rules đã load
                 rule_count = len(list(yara_rules)) if yara_rules else 0
                 print(f"[OK] YARA rules loaded: {rule_count} rules")
                 return yara_rules
             else:
+                # File rules không tồn tại, kiểm tra thư mục
                 print(f"[WARN] YARA rules file not found: {settings.YARA_RULES_PATH}")
                 print(f"[WARN] Checking if directory exists: {settings.YARA_RULES_PATH.parent}")
                 if settings.YARA_RULES_PATH.parent.exists():
@@ -143,12 +145,14 @@ class Settings:
                         print(f"  - {f}")
                 return None
         except yara.SyntaxError as e:
+            # Lỗi cú pháp YARA - không thể load rules
             print(f"[ERROR] YARA syntax error: {e}")
             print(f"[ERROR] This prevents YARA rules from loading!")
             import traceback
             traceback.print_exc()
             return None
         except Exception as e:
+            # Lỗi khác khi load YARA rules
             print(f"[WARN] Warning loading YARA rules: {e}")
             import traceback
             traceback.print_exc()

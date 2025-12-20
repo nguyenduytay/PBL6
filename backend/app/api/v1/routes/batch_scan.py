@@ -24,7 +24,8 @@ router = APIRouter()
 analyzer_service = AnalyzerService()  # Service phân tích malware
 analysis_service = AnalysisService()  # Service quản lý analyses
 
-# Lưu trữ tạm các batch jobs trong bộ nhớ (nên dùng Redis khi production)
+# Lưu trữ tạm các batch jobs trong bộ nhớ
+# Lưu ý: Nên dùng Redis khi production để tránh mất dữ liệu khi restart server
 batch_jobs = {}
 
 
@@ -81,6 +82,7 @@ async def process_batch_scan(batch_id: str, files: List[Path], batch_jobs: dict)
                 file_path.name
             )
             
+            # Ghi lại kết quả thành công
             batch_jobs[batch_id]["completed"] += 1
             batch_jobs[batch_id]["results"].append({
                 "filename": file_path.name,
@@ -97,7 +99,8 @@ async def process_batch_scan(batch_id: str, files: List[Path], batch_jobs: dict)
                 "error": str(e)
             })
     
-    batch_jobs[batch_id]["status"] = "completed"  # Đánh dấu hoàn thành
+    # Đánh dấu hoàn thành batch scan
+    batch_jobs[batch_id]["status"] = "completed"
 
 
 def extract_archive(file_path: Path, extract_to: Path) -> List[Path]:

@@ -202,6 +202,7 @@
     "noDetailedResults": "没有详细分析结果",
     "noDetailedResultsHint": "此分析可能是在添加详细结果功能之前创建的。请重新扫描文件以查看详细结果。",
     "noResultsFound": "未找到分析结果",
+    "andMoreMatchedStrings": "... 还有 {{count}} 个字符串",
     "matchedStrings": "匹配的字符串",
     "matchedStringsInfo": "在此规则中匹配的字符串/模式",
     "stringIdentifier": "标识符",
@@ -226,7 +227,14 @@
     "recommendClean": "此文件不匹配已知恶意软件模式。注意：YARA 不匹配并不意味着文件是安全的。应结合其他分析方法。",
     "yaraVersion": "YARA 版本",
     "ruleSetName": "YARA 规则集",
-    "scanInfo": "扫描信息"
+    "scanInfo": "扫描信息",
+    "malwareTypeTrojan": "特洛伊木马",
+    "malwareTypeInfoStealer": "信息窃取者",
+    "malwareTypeBackdoor": "后门",
+    "malwareTypeRansomware": "勒索软件",
+    "malwareTypeKeylogger": "键盘记录器",
+    "importantNote": "重要提示",
+    "yaraLimitationNote": "YARA 是基于模式的静态分析工具。YARA 结果只是完整恶意软件分析过程的一部分。应结合其他方法：动态分析、内存分析、逆向工程。"
   },
   "batchScan": {
     "title": "批量扫描",
