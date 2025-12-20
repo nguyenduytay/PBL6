@@ -60,14 +60,29 @@ class EmberFeatureExtractor:
                     if str(ember_parent) not in sys.path:
                         sys.path.insert(0, str(ember_parent))
                     
-                    # Import ember
+                    # Import ember với logging chi tiết
                     import importlib
-                    if 'ember' in sys.modules:
-                        importlib.reload(sys.modules['ember'])
-                    else:
-                        import ember  # type: ignore[import-untyped]
+                    try:
+                        if 'ember' in sys.modules:
+                            importlib.reload(sys.modules['ember'])
+                        else:
+                            import ember  # type: ignore[import-untyped]
+                        print(f"[DEBUG] Successfully imported ember module from {ember_path}")
+                    except Exception as import_err:
+                        print(f"[DEBUG] Failed to import ember module: {type(import_err).__name__}: {import_err}")
+                        import traceback
+                        print(f"[DEBUG] Import traceback: {traceback.format_exc()}")
+                        raise
                     
-                    from ember.features import PEFeatureExtractor  # type: ignore[import-untyped]
+                    try:
+                        from ember.features import PEFeatureExtractor  # type: ignore[import-untyped]
+                        print(f"[DEBUG] Successfully imported PEFeatureExtractor from ember.features")
+                    except Exception as features_err:
+                        print(f"[DEBUG] Failed to import PEFeatureExtractor: {type(features_err).__name__}: {features_err}")
+                        import traceback
+                        print(f"[DEBUG] Features import traceback: {traceback.format_exc()}")
+                        raise
+                    
                     source = str(ember_path)
                 
                 # Khởi tạo extractor với suppress warnings
@@ -79,10 +94,16 @@ class EmberFeatureExtractor:
                 return
                 
             except (ImportError, ModuleNotFoundError) as e:
-                # Tiếp tục thử path tiếp theo
+                # Log chi tiết lỗi import
+                if ember_path is not None:
+                    print(f"[DEBUG] ImportError from {ember_path}: {e}")
                 continue
             except Exception as e:
-                # Lỗi khác - tiếp tục thử
+                # Log chi tiết lỗi khác
+                import traceback
+                if ember_path is not None:
+                    print(f"[DEBUG] Exception from {ember_path}: {type(e).__name__}: {e}")
+                    print(f"[DEBUG] Traceback: {traceback.format_exc()}")
                 continue
         
         # Không load được ember - log error với chi tiết
