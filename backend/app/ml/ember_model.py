@@ -22,14 +22,14 @@ class EmberModel:
     
     def _find_model_path(self) -> Path:
         """Tìm đường dẫn file model EMBER"""
-        # Vị trí mặc định: backend/models
+        # Vị trí mặc định: backend/models (từ __file__)
         default_models_dir = Path(__file__).parent.parent.parent / "models"
         default_path = default_models_dir / self.model_filename
         
-        # Thử các vị trí có thể (ưu tiên Docker, sau đó mặc định)
+        # Thử các vị trí có thể
         possible_paths = [
-            Path("/app/models"),  # Docker container path
-            default_models_dir,  # backend/models (mặc định)
+            default_models_dir,  # backend/models (mặc định - ưu tiên)
+            Path("/app/models"),  # Docker container path (nếu có volume mount)
             Path("/models"),  # Alternative Docker path
         ]
         

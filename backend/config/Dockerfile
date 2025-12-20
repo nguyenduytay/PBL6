@@ -30,14 +30,15 @@ COPY requirements.txt .
 # Cài đặt các thư viện Python
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy models trước (để tận dụng cache layer)
+# Context là .. (backend/), nên models/ = backend/models/
+COPY models/ models/
+
 # Sao chép toàn bộ mã nguồn vào container
 COPY . .
 
-# Tạo thư mục uploads và models
-RUN mkdir -p uploads logs models
-
-# Đảm bảo thư mục models tồn tại (nếu chưa có trong COPY)
-# COPY models sẽ được thực hiện nếu có trong build context
+# Tạo thư mục uploads và logs (models đã được copy ở trên)
+RUN mkdir -p uploads logs
 
 # Expose port 5000 cho FastAPI
 EXPOSE 5000
