@@ -43,47 +43,69 @@ class EmberFeatureExtractor:
         # Loại bỏ None paths
         possible_paths = [p for p in possible_paths if p is not None]
         
+        # Thử import từ package đã cài đặt trước
+        try:
+            import ember  # type: ignore[import-untyped]
+            from ember.features import PEFeatureExtractor  # type: ignore[import-untyped]
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                self._extractor = PEFeatureExtractor(self.feature_version)
+            return
+        except (ImportError, ModuleNotFoundError):
+            pass
+        except Exception as e:
+            print(f"[DEBUG] Error importing ember from package: {type(e).__name__}: {e}")
+        
+        # Thử load từ local paths
         for ember_path in possible_paths:
             try:
-                if ember_path is None:
-                    # Thử import từ package đã cài đặt
+                # Thử load từ local path
+                if not (ember_path / "__init__.py").exists():
+                    continue
+                
+                # Thêm vào sys.path nếu chưa có
+                ember_parent = ember_path.parent
+                if str(ember_parent) not in sys.path:
+                    sys.path.insert(0, str(ember_parent))
+                
+                # Import ember với logging chi tiết
+                import importlib
+                try:
+                    if 'ember' in sys.modules:
+                        del sys.modules['ember']  # Xóa để import lại
                     import ember  # type: ignore[import-untyped]
+                    print(f"[DEBUG] Successfully imported ember module from {ember_path}")
+                except Exception as import_err:
+                    print(f"[DEBUG] Failed to import ember module from {ember_path}: {type(import_err).__name__}: {import_err}")
+                    import traceback
+                    print(f"[DEBUG] Import traceback:\n{traceback.format_exc()}")
+                    continue  # Thử path tiếp theo
+                
+                try:
                     from ember.features import PEFeatureExtractor  # type: ignore[import-untyped]
-                    source = "installed package"
-                else:
-                    # Thử load từ local path
-                    if not (ember_path / "__init__.py").exists():
-                        continue
+                    print(f"[DEBUG] Successfully imported PEFeatureExtractor from ember.features")
+                except Exception as features_err:
+                    print(f"[DEBUG] Failed to import PEFeatureExtractor: {type(features_err).__name__}: {features_err}")
+                    import traceback
+                    print(f"[DEBUG] Features import traceback:\n{traceback.format_exc()}")
+                    continue  # Thử path tiếp theo
+                
+                # Khởi tạo extractor
+                try:
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
+                        self._extractor = PEFeatureExtractor(self.feature_version)
+                    print(f"[DEBUG] Successfully created PEFeatureExtractor from {ember_path}")
+                    return
+                except Exception as init_err:
+                    print(f"[DEBUG] Failed to create PEFeatureExtractor: {type(init_err).__name__}: {init_err}")
+                    import traceback
+                    print(f"[DEBUG] Init traceback:\n{traceback.format_exc()}")
+                    continue
                     
-                    # Thêm vào sys.path nếu chưa có
-                    ember_parent = ember_path.parent
-                    if str(ember_parent) not in sys.path:
-                        sys.path.insert(0, str(ember_parent))
-                    
-                    # Import ember với logging chi tiết
-                    import importlib
-                    try:
-                        if 'ember' in sys.modules:
-                            importlib.reload(sys.modules['ember'])
-                        else:
-                            import ember  # type: ignore[import-untyped]
-                        print(f"[DEBUG] Successfully imported ember module from {ember_path}")
-                    except Exception as import_err:
-                        print(f"[DEBUG] Failed to import ember module: {type(import_err).__name__}: {import_err}")
-                        import traceback
-                        print(f"[DEBUG] Import traceback: {traceback.format_exc()}")
-                        raise
-                    
-                    try:
-                        from ember.features import PEFeatureExtractor  # type: ignore[import-untyped]
-                        print(f"[DEBUG] Successfully imported PEFeatureExtractor from ember.features")
-                    except Exception as features_err:
-                        print(f"[DEBUG] Failed to import PEFeatureExtractor: {type(features_err).__name__}: {features_err}")
-                        import traceback
-                        print(f"[DEBUG] Features import traceback: {traceback.format_exc()}")
-                        raise
-                    
-                    source = str(ember_path)
+            except Exception as e:
+                print(f"[DEBUG] Unexpected error with path {ember_path}: {type(e).__name__}: {e}")
+                continue
                 
                 # Khởi tạo extractor với suppress warnings
                 with warnings.catch_warnings():
