@@ -71,7 +71,6 @@
     "supportedFormats": "支持：EXE、DLL、PDF、DOC 等",
     "fileSelected": "已选择文件",
     "fileSize": "文件大小",
-    "file": "文件",
     "analyzing": "分析中...",
     "analysisResult": "分析结果",
     "status": "状态",
@@ -101,7 +100,10 @@
     "file": "文件",
     "score": "分数",
     "threshold": "阈值",
-    "viewMore": "查看更多 →"
+    "viewMore": "查看更多 →",
+    "peFile": "PE",
+    "notPeFile": "非 PE",
+    "resultType": "结果类型"
   },
   "analyses": {
     "title": "最近分析",
@@ -165,6 +167,7 @@
     "peFileInfo": "PE 文件信息",
     "noPeInfo": "无 PE 信息可用",
     "suspiciousStrings": "可疑字符串",
+    "suspiciousStringsSubtitle": "在文件中检测到的可疑字符串",
     "noSuspiciousStrings": "未找到可疑字符串",
     "andMoreStrings": "... 还有 {{count}} 个字符串",
     "capabilities": "功能",
@@ -192,7 +195,10 @@
     "by": "由",
     "backToAnalyses": "← 返回分析",
     "analysisNotFound": "未找到分析",
-    "na": "不适用"
+    "na": "不适用",
+    "noDetailedResults": "没有详细分析结果",
+    "noDetailedResultsHint": "此分析可能是在添加详细结果功能之前创建的。请重新扫描文件以查看详细结果。",
+    "noResultsFound": "未找到分析结果"
   },
   "batchScan": {
     "title": "批量扫描",
@@ -200,6 +206,8 @@
     "scanFolder": "扫描文件夹",
     "scanFolderSubtitle": "选择文件夹以扫描所有文件",
     "selectFolder": "选择文件夹",
+    "chooseFolderButton": "选择文件夹",
+    "chooseFileButton": "选择文件",
     "selected": "已选择",
     "files": "个文件",
     "totalSize": "总大小",
@@ -239,7 +247,11 @@
     "pleaseSelectFolder": "请先选择文件夹",
     "totalSizeExceeds": "总大小 ({{sizeGB}} GB) 超过允许的最大大小 ({{maxGB}} GB)。请选择较小的文件夹。",
     "noFilesMatching": "未找到符合条件的文件",
-    "fileSizeExceedsMax": "文件大小 ({{sizeGB}} GB) 超过允许的最大大小 ({{maxGB}} GB)。请选择较小的文件。"
+    "fileSizeExceedsMax": "文件大小 ({{sizeGB}} GB) 超过允许的最大大小 ({{maxGB}} GB)。请选择较小的文件。",
+    "unitGB": "GB",
+    "unitMB": "MB",
+    "unitKB": "KB",
+    "unitBytes": "字节"
   },
   "search": {
     "title": "搜索分析",

@@ -125,11 +125,25 @@ const BatchScan: React.FC = () => {
               <input
                 ref={folderInputRef}
                 type="file"
+                id="folder-upload"
                 {...({ webkitdirectory: '', directory: '' } as any)}
                 multiple
                 onChange={handleFolderSelect}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700"
+                className="hidden"
               />
+              <div className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg flex items-center">
+                <button
+                  type="button"
+                  onClick={() => folderInputRef.current?.click()}
+                  disabled={loading}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t('batchScan.chooseFolderButton')}
+                </button>
+                <span className="ml-4 text-gray-400 text-sm">
+                  {selectedFolderName || t('common.noFolderSelected')}
+                </span>
+              </div>
               {!selectedFolderName && (
                 <p className="mt-2 text-sm text-gray-500">{t('common.noFolderSelected')}</p>
               )}
@@ -139,7 +153,7 @@ const BatchScan: React.FC = () => {
                     {t('batchScan.selected')}: {selectedFolderName} ({selectedFolder?.length || 0} {t('batchScan.files')})
                   </p>
                   <p className="text-sm text-gray-400">
-                    {t('batchScan.totalSize')}: {formatFileSizeGB(totalSize)} / {MAX_UPLOAD_SIZE_GB} GB
+                    {t('batchScan.totalSize')}: {formatFileSizeGB(totalSize)} / {MAX_UPLOAD_SIZE_GB} {t('batchScan.unitGB')}
                   </p>
                 </div>
               )}
@@ -163,7 +177,7 @@ const BatchScan: React.FC = () => {
 
             <div className="text-sm text-gray-400 bg-gray-800 p-3 rounded-lg">
               <p className="font-medium mb-1">{t('batchScan.uploadLimits')}:</p>
-              <p>{t('batchScan.maxSize')}: {MAX_UPLOAD_SIZE_GB} GB {t('batchScan.perUpload')}</p>
+              <p>{t('batchScan.maxSize')}: {MAX_UPLOAD_SIZE_GB} {t('batchScan.unitGB')} {t('batchScan.perUpload')}</p>
               <p className="text-xs mt-1 text-gray-500">{t('batchScan.filesExceedingLimit')}</p>
             </div>
 
@@ -186,13 +200,27 @@ const BatchScan: React.FC = () => {
               </label>
               <input
                 type="file"
+                id="archive-upload"
                 accept=".zip,.tar,.gz,.bz2,.tar.gz,.tar.bz2"
                 onChange={(e) => {
                   const file = e.target.files?.[0] || null
                   setSelectedFile(file)
                 }}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700"
+                className="hidden"
               />
+              <div className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg flex items-center">
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('archive-upload')?.click()}
+                  disabled={loading}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t('batchScan.chooseFileButton')}
+                </button>
+                <span className="ml-4 text-gray-400 text-sm">
+                  {selectedFile?.name || t('common.noFileSelected')}
+                </span>
+              </div>
               {!selectedFile && (
                 <p className="mt-2 text-sm text-gray-500">{t('common.noFileSelected')}</p>
               )}
@@ -202,7 +230,7 @@ const BatchScan: React.FC = () => {
                     {t('batchScan.selected')}: {selectedFile.name}
                   </p>
                   <p className="text-sm text-gray-400">
-                    {t('batchScan.size')}: {formatFileSizeGB(selectedFile.size)} / {MAX_UPLOAD_SIZE_GB} GB
+                    {t('batchScan.size')}: {formatFileSizeGB(selectedFile.size)} / {MAX_UPLOAD_SIZE_GB} {t('batchScan.unitGB')}
                   </p>
                   {selectedFile.size > MAX_UPLOAD_SIZE_BYTES && (
                     <p className="text-sm text-red-400">

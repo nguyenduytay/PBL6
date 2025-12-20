@@ -101,7 +101,10 @@
     "file": "File",
     "score": "Score",
     "threshold": "Threshold",
-    "viewMore": "Xem thêm →"
+    "viewMore": "Xem thêm →",
+    "peFile": "PE",
+    "notPeFile": "Không phải PE",
+    "resultType": "Loại kết quả"
   },
   "analyses": {
     "title": "Phân tích gần đây",
@@ -162,6 +165,7 @@
     "peFileInfo": "Thông tin tệp PE",
     "noPeInfo": "Không có thông tin PE",
     "suspiciousStrings": "Chuỗi đáng ngờ",
+    "suspiciousStringsSubtitle": "Các chuỗi ký tự nghi ngờ được phát hiện trong file",
     "noSuspiciousStrings": "Không tìm thấy chuỗi đáng ngờ",
     "capabilities": "Khả năng",
     "fileCapabilities": "Khả năng của tệp",
@@ -190,6 +194,9 @@
     "analysisNotFound": "Không tìm thấy phân tích",
     "na": "N/A",
     "ruleName": "Tên Rule",
+    "noDetailedResults": "Không có kết quả phân tích chi tiết",
+    "noDetailedResultsHint": "Phân tích này có thể được tạo trước khi tính năng hiển thị chi tiết được thêm vào. Vui lòng quét lại file để xem kết quả chi tiết.",
+    "noResultsFound": "Không tìm thấy kết quả phân tích",
     "andMoreStrings": "... và {{count}} chuỗi khác"
   },
   "batchScan": {
@@ -198,6 +205,8 @@
     "scanFolder": "Quét thư mục",
     "scanFolderSubtitle": "Chọn thư mục để quét tất cả tệp",
     "selectFolder": "Chọn thư mục",
+    "chooseFolderButton": "Chọn thư mục",
+    "chooseFileButton": "Chọn tệp",
     "selected": "Đã chọn",
     "files": "tệp",
     "totalSize": "Tổng kích thước",
@@ -238,7 +247,11 @@
     "pleaseSelectFolder": "Vui lòng chọn thư mục trước",
     "totalSizeExceeds": "Tổng kích thước ({{sizeGB}} GB) vượt quá kích thước tối đa cho phép ({{maxGB}} GB). Vui lòng chọn thư mục nhỏ hơn.",
     "noFilesMatching": "Không tìm thấy tệp phù hợp với tiêu chí",
-    "fileSizeExceedsMax": "Kích thước tệp ({{sizeGB}} GB) vượt quá kích thước tối đa cho phép ({{maxGB}} GB). Vui lòng chọn tệp nhỏ hơn."
+    "fileSizeExceedsMax": "Kích thước tệp ({{sizeGB}} GB) vượt quá kích thước tối đa cho phép ({{maxGB}} GB). Vui lòng chọn tệp nhỏ hơn.",
+    "unitGB": "GB",
+    "unitMB": "MB",
+    "unitKB": "KB",
+    "unitBytes": "bytes"
   },
   "search": {
     "title": "Tìm kiếm phân tích",

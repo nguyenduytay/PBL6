@@ -161,14 +161,14 @@ class AnalyzerService:
             'yara_matches': static_analysis.get("yara_matches", []),
             'pe_info': static_analysis.get("pe_info"),
             'suspicious_strings': static_analysis.get("strings", [])[:20],  # Limit 20
-            'capabilities': static_analysis.get("capabilities", [])
+            'capabilities': static_analysis.get("capabilities", []),
+            'results': results  # Thêm results TRƯỚC KHI lưu vào database
         }
         
         # Lưu vào database
         try:
             analysis_id = await self.analysis_service.create(analysis_data)
             analysis_data['id'] = analysis_id
-            analysis_data['results'] = results
             return analysis_data
         except Exception as e:
             print(f"[WARN] Failed to save analysis to database: {e}")

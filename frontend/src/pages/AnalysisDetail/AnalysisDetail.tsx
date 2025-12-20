@@ -336,7 +336,7 @@ const AnalysisDetail: React.FC = () => {
                   className="p-4 bg-gray-800/50 border border-gray-600 rounded-lg"
                 >
                   <p className="font-medium text-gray-300 mb-1">
-                    {item.type} {item.subtype ? `(${item.subtype})` : ''}
+                    {t('upload.resultType')}: {item.type} {item.subtype ? `(${item.subtype})` : ''}
                   </p>
                   <p className="text-sm text-gray-400">{item.message || JSON.stringify(item)}</p>
                 </div>

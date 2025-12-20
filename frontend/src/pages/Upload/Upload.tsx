@@ -243,10 +243,10 @@ const Upload: React.FC = () => {
                       <div className="flex items-center space-x-2">
                         <p className="text-white font-medium truncate">{file.name}</p>
                         {scanType === 'ember' && isPEFile(file) && (
-                          <Badge variant="success" className="text-xs">PE</Badge>
+                          <Badge variant="success" className="text-xs">{t('upload.peFile')}</Badge>
                         )}
                         {scanType === 'ember' && !isPEFile(file) && (
-                          <Badge variant="danger" className="text-xs">Not PE</Badge>
+                          <Badge variant="danger" className="text-xs">{t('upload.notPeFile')}</Badge>
                         )}
                       </div>
                       <p className="text-gray-400 text-sm mt-1">
@@ -437,7 +437,7 @@ const Upload: React.FC = () => {
                             className="p-4 bg-gray-800/50 border border-gray-600 rounded-lg"
                           >
                             <p className="font-medium text-gray-300 mb-1">
-                              {item.type} {item.subtype ? `(${item.subtype})` : ''}
+                              {t('upload.resultType')}: {item.type} {item.subtype ? `(${item.subtype})` : ''}
                             </p>
                             <p className="text-sm text-gray-400">{item.message || JSON.stringify(item)}</p>
                           </div>

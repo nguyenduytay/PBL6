@@ -101,7 +101,10 @@
     "file": "File",
     "score": "Score",
     "threshold": "Threshold",
-    "viewMore": "View more →"
+    "viewMore": "View more →",
+    "peFile": "PE",
+    "notPeFile": "Not PE",
+    "resultType": "Result Type"
   },
   "analyses": {
     "title": "Recent Analyses",
@@ -165,6 +168,7 @@
     "peFileInfo": "PE file information",
     "noPeInfo": "No PE information available",
     "suspiciousStrings": "Suspicious Strings",
+    "suspiciousStringsSubtitle": "Suspicious character strings detected in the file",
     "noSuspiciousStrings": "No suspicious strings found",
     "andMoreStrings": "... and {count} more strings",
     "capabilities": "Capabilities",
@@ -192,7 +196,10 @@
     "by": "by",
     "backToAnalyses": "← Back to Analyses",
     "analysisNotFound": "Analysis not found",
-    "na": "N/A"
+    "na": "N/A",
+    "noDetailedResults": "No detailed analysis results",
+    "noDetailedResultsHint": "This analysis may have been created before the detailed results feature was added. Please scan the file again to see detailed results.",
+    "noResultsFound": "No analysis results found"
   },
   "batchScan": {
     "title": "Batch Scan",
@@ -200,6 +207,8 @@
     "scanFolder": "Scan Folder",
     "scanFolderSubtitle": "Select a folder to scan all files",
     "selectFolder": "Select Folder",
+    "chooseFolderButton": "Choose Folder",
+    "chooseFileButton": "Choose File",
     "selected": "Selected",
     "files": "files",
     "totalSize": "Total size",
@@ -239,7 +248,11 @@
     "pleaseSelectFolder": "Please select a folder first",
     "totalSizeExceeds": "Total size ({{sizeGB}} GB) exceeds maximum allowed size ({{maxGB}} GB). Please select a smaller folder.",
     "noFilesMatching": "No files found matching the criteria",
-    "fileSizeExceedsMax": "File size ({{sizeGB}} GB) exceeds maximum allowed size ({{maxGB}} GB). Please select a smaller file."
+    "fileSizeExceedsMax": "File size ({{sizeGB}} GB) exceeds maximum allowed size ({{maxGB}} GB). Please select a smaller file.",
+    "unitGB": "GB",
+    "unitMB": "MB",
+    "unitKB": "KB",
+    "unitBytes": "bytes"
   },
   "search": {
     "title": "Search Analyses",
