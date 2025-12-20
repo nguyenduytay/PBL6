@@ -149,6 +149,16 @@ class AnalyzerService:
         sha256 = self.hash_service.calculate_hash(filepath)
         md5 = static_analysis.get("hashes", {}).get("md5")
         
+        # Extract detailed YARA matches từ results
+        yara_matches_for_db = []
+        for result in results:
+            if result.get("type") == "yara" and result.get("detailed_matches"):
+                yara_matches_for_db.extend(result.get("detailed_matches", []))
+        
+        # Nếu không có detailed_matches, fallback về static_analysis
+        if not yara_matches_for_db:
+            yara_matches_for_db = static_analysis.get("yara_matches", [])
+        
         # Chuẩn bị dữ liệu để lưu
         analysis_data = {
             'filename': filename,
@@ -158,7 +168,7 @@ class AnalyzerService:
             'upload_time': datetime.now(),
             'analysis_time': elapsed,
             'malware_detected': malware_detected,
-            'yara_matches': static_analysis.get("yara_matches", []),
+            'yara_matches': yara_matches_for_db,
             'pe_info': static_analysis.get("pe_info"),
             'suspicious_strings': static_analysis.get("strings", [])[:20],  # Limit 20
             'capabilities': static_analysis.get("capabilities", []),

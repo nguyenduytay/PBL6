@@ -151,12 +151,29 @@ async def init_database():
                         rule_name VARCHAR(255) NOT NULL,
                         tags TEXT,
                         description TEXT,
+                        author TEXT,
+                        reference TEXT,
+                        matched_strings JSON,
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (analysis_id) REFERENCES analyses(id) ON DELETE CASCADE,
                         INDEX idx_analysis_id (analysis_id),
                         INDEX idx_rule_name (rule_name)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """)
+                
+                # Thêm các cột mới nếu chưa có (migration)
+                try:
+                    await cursor.execute("ALTER TABLE yara_matches ADD COLUMN author TEXT")
+                except Exception:
+                    pass  # Column đã tồn tại
+                try:
+                    await cursor.execute("ALTER TABLE yara_matches ADD COLUMN reference TEXT")
+                except Exception:
+                    pass  # Column đã tồn tại
+                try:
+                    await cursor.execute("ALTER TABLE yara_matches ADD COLUMN matched_strings JSON")
+                except Exception:
+                    pass  # Column đã tồn tại
                 
                 # Tạo bảng ratings
                 await cursor.execute("""

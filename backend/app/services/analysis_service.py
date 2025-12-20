@@ -61,23 +61,30 @@ class AnalysisService:
                 analysis_id = cursor.lastrowid
                 
                 # Insert YARA matches
+                import json
                 yara_matches = analysis_data.get('yara_matches', [])
                 if yara_matches and analysis_id:
                     for match in yara_matches:
                         if isinstance(match, dict):
                             match_sql = """
-                                INSERT INTO yara_matches (analysis_id, rule_name, tags, description)
-                                VALUES (%s, %s, %s, %s)
+                                INSERT INTO yara_matches (analysis_id, rule_name, tags, description, author, reference, matched_strings)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s)
                             """
                             rule_name = match.get('rule', match.get('rule_name', ''))
                             tags = ', '.join(match.get('tags', [])) if isinstance(match.get('tags'), list) else match.get('tags', '')
                             description = match.get('description', match.get('meta', {}).get('description', ''))
+                            author = match.get('author', match.get('meta', {}).get('author', ''))
+                            reference = match.get('reference', match.get('meta', {}).get('reference', ''))
+                            matched_strings = json.dumps(match.get('matched_strings', [])) if match.get('matched_strings') else None
                             
                             await cursor.execute(match_sql, (
                                 analysis_id,
                                 rule_name,
                                 tags,
-                                description
+                                description,
+                                author,
+                                reference,
+                                matched_strings
                             ))
                 
                 await conn.commit()
@@ -118,10 +125,20 @@ class AnalysisService:
                     else:
                         row['results'] = []
                     
-                    # Get YARA matches
+                    # Get YARA matches với matched strings
                     await cursor.execute("SELECT * FROM yara_matches WHERE analysis_id = %s", (analysis_id,))
                     yara_matches = await cursor.fetchall()
-                    row['yara_match_details'] = yara_matches
+                    # Parse matched_strings JSON
+                    for match in yara_matches:
+                        if match.get('matched_strings'):
+                            try:
+                                match['matched_strings'] = json.loads(match['matched_strings'])
+                            except:
+                                match['matched_strings'] = []
+                        # Parse tags nếu là string
+                        if match.get('tags') and isinstance(match['tags'], str):
+                            match['tags'] = [t.strip() for t in match['tags'].split(',') if t.strip()]
+                    row['yara_matches'] = yara_matches
                 
                 return row
         finally:

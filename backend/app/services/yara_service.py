@@ -57,11 +57,61 @@ class YaraService:
                 
                 match_details.append(rule_info)
             
+            # Return detailed matches for database storage
+            detailed_matches = []
+            for match in matches:
+                match_obj = {
+                    "rule_name": str(match.rule),
+                    "tags": list(match.tags) if hasattr(match, 'tags') and match.tags else [],
+                    "description": None,
+                    "author": None,
+                    "reference": None,
+                    "matched_strings": []
+                }
+                
+                # Extract meta information
+                if hasattr(match, 'meta') and match.meta:
+                    match_obj["description"] = match.meta.get('description')
+                    match_obj["author"] = match.meta.get('author')
+                    match_obj["reference"] = match.meta.get('reference')
+                
+                # Extract matched strings
+                if hasattr(match, 'strings') and match.strings:
+                    for s in match.strings:
+                        # yara.StringMatch object has attributes: identifier, offset, data
+                        string_info = {
+                            "identifier": getattr(s, 'identifier', None),
+                            "offset": getattr(s, 'offset', None),
+                            "data": None,
+                            "data_preview": None
+                        }
+                        
+                        # Get data (bytes)
+                        data = getattr(s, 'data', None)
+                        if data:
+                            if isinstance(data, bytes):
+                                string_info["data"] = data.hex()
+                                # Try to decode as string for preview
+                                try:
+                                    # Try ASCII
+                                    decoded = data.decode('ascii', errors='ignore')
+                                    if decoded and decoded.isprintable() and len(decoded) > 0:
+                                        string_info["data_preview"] = decoded[:100]  # Limit preview
+                                except:
+                                    pass
+                            else:
+                                string_info["data"] = str(data)
+                        
+                        match_obj["matched_strings"].append(string_info)
+                
+                detailed_matches.append(match_obj)
+            
             results.append({
                 "type": "yara",
                 "file": filepath,
                 "matches": ", ".join(match_details),
                 "rule_count": len(matches),
+                "detailed_matches": detailed_matches,  # For database storage
                 "infoUrl": None  # Will be filled by analyzer service
             })
             

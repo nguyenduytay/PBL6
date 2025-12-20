@@ -119,35 +119,224 @@ const AnalysisDetail: React.FC = () => {
         </div>
       </Card>
 
-      {/* YARA Matches */}
-      {analysis.yara_matches && analysis.yara_matches.length > 0 && (
-        <Card
-          title={`${t('analysisDetail.yaraMatches')} (${analysis.yara_matches.length})`}
-          subtitle={t('analysisDetail.yaraMatchInfo')}
-        >
-          <div className="space-y-3">
-            {analysis.yara_matches.map((match, index) => (
-              <div
-                key={index}
-                className="p-4 bg-yellow-900/20 border border-yellow-600 rounded-lg"
-              >
-                <p className="font-medium text-yellow-400">{match.rule_name}</p>
-                {match.description && (
-                  <p className="text-sm text-gray-400 mt-1">{match.description}</p>
-                )}
-                {match.tags && match.tags.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {match.tags.map((tag: string, tagIndex: number) => (
-                      <Badge key={tagIndex} variant="warning">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+      {/* Scan Information */}
+      {(analysis.yara_matches && analysis.yara_matches.length > 0) && (
+        <Card title={t('analysisDetail.scanInfo')} subtitle={t('analysisDetail.yaraMatchInfo')}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <p className="text-sm text-gray-400 mb-1">{t('analysisDetail.yaraVersion')}</p>
+              <p className="text-white font-medium">4.5.4</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-400 mb-1">{t('analysisDetail.ruleSetName')}</p>
+              <p className="text-white font-medium">index.yar</p>
+            </div>
           </div>
         </Card>
+      )}
+
+      {/* YARA Matches */}
+      {analysis.yara_matches && analysis.yara_matches.length > 0 && (
+        <>
+          <Card
+            title={`${t('analysisDetail.yaraMatches')} (${analysis.yara_matches.length})`}
+            subtitle={t('analysisDetail.yaraMatchInfo')}
+          >
+            <div className="space-y-3">
+              {analysis.yara_matches.map((match, index) => {
+                // Handle tags - can be array or string
+                let tags: string[] = []
+                if (match.tags) {
+                  if (Array.isArray(match.tags)) {
+                    tags = match.tags as string[]
+                  } else if (typeof match.tags === 'string') {
+                    tags = (match.tags as string).split(',').map((t: string) => t.trim()).filter((t: string) => t.length > 0)
+                  }
+                }
+                
+                return (
+                  <div
+                    key={index}
+                    className="p-4 bg-yellow-900/20 border border-yellow-600 rounded-lg"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <p className="font-medium text-yellow-400">{match.rule_name}</p>
+                        {match.description && (
+                          <p className="text-sm text-gray-400 mt-1">{match.description}</p>
+                        )}
+                        <div className="mt-2 flex flex-wrap gap-2 items-center">
+                          {match.author && (
+                            <span className="text-xs text-gray-500">
+                              {t('analysisDetail.author')}: {match.author}
+                            </span>
+                          )}
+                          {match.reference && (
+                            <a 
+                              href={match.reference} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-400 hover:text-blue-300"
+                            >
+                              {t('analysisDetail.reference')}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {tags.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {tags.map((tag: string, tagIndex: number) => (
+                          <Badge key={tagIndex} variant="warning">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    {match.matched_strings && match.matched_strings.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-yellow-700/50">
+                        <p className="text-xs font-semibold text-gray-400 mb-2">
+                          {t('analysisDetail.matchedStrings')} ({match.matched_strings.length}):
+                        </p>
+                        <div className="space-y-1 max-h-40 overflow-y-auto">
+                          {match.matched_strings.slice(0, 10).map((str: any, strIndex: number) => (
+                            <div key={strIndex} className="text-xs bg-gray-800/50 p-2 rounded">
+                              {str.identifier && (
+                                <span className="text-yellow-300 font-mono">{str.identifier}</span>
+                              )}
+                              {str.offset !== undefined && (
+                                <span className="text-gray-500 ml-2">@0x{str.offset.toString(16)}</span>
+                              )}
+                              {str.data_preview && (
+                                <code className="block text-gray-300 mt-1 break-all">
+                                  {str.data_preview}
+                                </code>
+                              )}
+                            </div>
+                          ))}
+                          {match.matched_strings.length > 10 && (
+                            <p className="text-xs text-gray-500 text-center">
+                              ... và {match.matched_strings.length - 10} chuỗi khác
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </Card>
+
+          {/* Severity Assessment */}
+          <Card 
+            title={t('analysisDetail.severityAssessment')}
+            subtitle={t('analysisDetail.severityDescription')}
+          >
+            {(() => {
+              const matchCount = analysis.yara_matches?.length || 0
+              const highSeverityTags = ['AntiDebug', 'PECheck', 'PEiD', 'malware', 'trojan', 'virus', 'backdoor', 'ransomware']
+              const hasHighSeverityTag = analysis.yara_matches?.some(m => {
+                const tags = Array.isArray(m.tags) ? m.tags : (typeof m.tags === 'string' ? m.tags.split(',') : [])
+                return tags.some((tag: string) => highSeverityTags.some(hst => tag.toLowerCase().includes(hst.toLowerCase())))
+              })
+              
+              let severity: 'high' | 'medium' | 'low' | 'clean' = 'clean'
+              let severityText = t('analysisDetail.severityClean')
+              
+              if (matchCount >= 5 || hasHighSeverityTag) {
+                severity = 'high'
+                severityText = t('analysisDetail.severityHigh')
+              } else if (matchCount >= 3) {
+                severity = 'medium'
+                severityText = t('analysisDetail.severityMedium')
+              } else if (matchCount >= 1) {
+                severity = 'low'
+                severityText = t('analysisDetail.severityLow')
+              }
+              
+              // Classify potential malware type
+              const malwareTypes: string[] = []
+              analysis.yara_matches?.forEach(m => {
+                const tags = Array.isArray(m.tags) ? m.tags : (typeof m.tags === 'string' ? m.tags.split(',') : [])
+                if (tags.some((t: string) => t.toLowerCase().includes('trojan'))) malwareTypes.push('Trojan')
+                if (tags.some((t: string) => t.toLowerCase().includes('stealer'))) malwareTypes.push('InfoStealer')
+                if (tags.some((t: string) => t.toLowerCase().includes('backdoor'))) malwareTypes.push('Backdoor')
+                if (tags.some((t: string) => t.toLowerCase().includes('ransomware'))) malwareTypes.push('Ransomware')
+                if (tags.some((t: string) => t.toLowerCase().includes('keylogger'))) malwareTypes.push('Keylogger')
+              })
+              const uniqueTypes = [...new Set(malwareTypes)]
+              
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Badge variant={severity === 'high' ? 'danger' : severity === 'medium' ? 'warning' : 'success'}>
+                      {severityText}
+                    </Badge>
+                    <span className="text-gray-400 text-sm">
+                      {matchCount} {matchCount > 1 ? t('analysisDetail.rules') : t('analysisDetail.rule')} khớp
+                    </span>
+                  </div>
+                  
+                  {uniqueTypes.length > 0 && (
+                    <div>
+                      <p className="text-sm text-gray-400 mb-2">{t('analysisDetail.malwareClassification')}:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {uniqueTypes.map((type, idx) => (
+                          <Badge key={idx} variant="warning">{type}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {severity !== 'clean' && (
+                    <div className="p-3 bg-gray-800/50 rounded border border-gray-700">
+                      <p className="text-xs text-gray-400 mb-1">{t('analysisDetail.falsePositiveAnalysis')}:</p>
+                      <p className="text-xs text-gray-500">{t('analysisDetail.falsePositiveNote')}</p>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+          </Card>
+
+          {/* Conclusion & Recommendations */}
+          <Card 
+            title={t('analysisDetail.conclusion')}
+            subtitle={t('analysisDetail.recommendations')}
+          >
+            {(() => {
+              const matchCount = analysis.yara_matches?.length || 0
+              const hasHighSeverityTag = analysis.yara_matches?.some(m => {
+                const tags = Array.isArray(m.tags) ? m.tags : (typeof m.tags === 'string' ? m.tags.split(',') : [])
+                return tags.some((tag: string) => ['AntiDebug', 'PECheck', 'malware', 'trojan'].some(hst => tag.toLowerCase().includes(hst.toLowerCase())))
+              })
+              
+              let recommendation = ''
+              if (matchCount >= 5 || hasHighSeverityTag) {
+                recommendation = t('analysisDetail.recommendHigh')
+              } else if (matchCount >= 3) {
+                recommendation = t('analysisDetail.recommendMedium')
+              } else if (matchCount >= 1) {
+                recommendation = t('analysisDetail.recommendLow')
+              } else {
+                recommendation = t('analysisDetail.recommendClean')
+              }
+              
+              return (
+                <div className="space-y-3">
+                  <div className="p-4 bg-gray-800/50 rounded border border-gray-700">
+                    <p className="text-sm text-gray-300 leading-relaxed">{recommendation}</p>
+                  </div>
+                  <div className="text-xs text-gray-500 italic">
+                    <p className="font-semibold mb-1">Lưu ý quan trọng:</p>
+                    <p>YARA là công cụ phân tích tĩnh dựa trên mẫu. Kết quả YARA chỉ là một phần của quy trình phân tích mã độc hoàn chỉnh. Cần kết hợp với các phương pháp khác: phân tích động, phân tích memory, reverse engineering.</p>
+                  </div>
+                </div>
+              )
+            })()}
+          </Card>
+        </>
       )}
 
       {/* PE Info */}

@@ -186,13 +186,13 @@ class Settings:
         
         if static_analyzer is None:
             try:
-                # Static Analyzer được khởi tạo trong StaticAnalyzerService
-                # Không cần khởi tạo ở đây nữa
-                pass
-                print("[INFO] Static Analyzer disabled - src folder removed during refactoring")
-                static_analyzer = None
+                from app.services.static_analyzer_impl import StaticAnalyzer
+                static_analyzer = StaticAnalyzer()
+                print("[INFO] Static Analyzer initialized successfully")
             except Exception as e:
                 print(f"[WARN] Failed to initialize Static Analyzer: {e}")
+                import traceback
+                traceback.print_exc()
                 static_analyzer = None
         
         return static_analyzer

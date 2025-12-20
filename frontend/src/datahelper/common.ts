@@ -7,8 +7,18 @@
  */
 export interface YaraMatch {
   rule_name: string
-  tags?: string[]
+  tags?: string[] | string
   description?: string
+  author?: string
+  reference?: string
+  matched_strings?: MatchedString[]
+}
+
+export interface MatchedString {
+  identifier?: string
+  offset?: number
+  data?: string
+  data_preview?: string
 }
 
 /**
