@@ -25,16 +25,23 @@ class EmberFeatureExtractor:
         from pathlib import Path
         
         # Danh sách các vị trí có thể có ember
+        # Tính toán paths dựa trên vị trí hiện tại
+        current_file = Path(__file__)  # backend/app/ml/features.py
+        backend_dir = current_file.parent.parent.parent  # backend/ hoặc /app/ trong Docker
+        
         possible_paths = [
             # 1. Thử import từ package đã cài đặt
             None,  # Sẽ thử import trực tiếp
-            # 2. Từ backend/ember (local development)
-            Path(__file__).parent.parent.parent / "ember",
-            # 3. Từ /app/ember (Docker container)
+            # 2. Từ backend/ember (local: backend/ember, Docker: /app/ember)
+            backend_dir / "ember",
+            # 3. Từ /app/ember (Docker container - explicit path)
             Path("/app/ember"),
-            # 4. Từ project root/ember
-            Path(__file__).parent.parent.parent.parent / "ember",
+            # 4. Từ project root/ember (nếu có)
+            backend_dir.parent / "ember" if backend_dir.parent.exists() else None,
         ]
+        
+        # Loại bỏ None paths
+        possible_paths = [p for p in possible_paths if p is not None]
         
         for ember_path in possible_paths:
             try:
@@ -78,9 +85,26 @@ class EmberFeatureExtractor:
                 # Lỗi khác - tiếp tục thử
                 continue
         
-        # Không load được ember - log error
+        # Không load được ember - log error với chi tiết
         print(f"[ERROR] Failed to load ember library from all possible paths")
-        print(f"[ERROR] Tried: installed package, {Path(__file__).parent.parent.parent / 'ember'}, /app/ember")
+        print(f"[ERROR] Tried paths:")
+        print(f"[ERROR]   1. Installed package (pip)")
+        print(f"[ERROR]   2. {Path(__file__).parent.parent.parent / 'ember'}")
+        print(f"[ERROR]   3. {Path('/app/ember')}")
+        print(f"[ERROR]   4. {Path(__file__).parent.parent.parent.parent / 'ember'}")
+        
+        # Debug: Kiểm tra xem các path có tồn tại không
+        import os
+        debug_paths = [
+            Path(__file__).parent.parent.parent / "ember",
+            Path("/app/ember"),
+            Path(__file__).parent.parent.parent.parent / "ember",
+        ]
+        for debug_path in debug_paths:
+            exists = debug_path.exists()
+            has_init = (debug_path / "__init__.py").exists() if exists else False
+            print(f"[DEBUG] Path {debug_path}: exists={exists}, has __init__.py={has_init}")
+        
         self._extractor = None
 
     def feature_vector(self, bytez: bytes) -> np.ndarray:

@@ -31,14 +31,34 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Sao chép toàn bộ mã nguồn vào container (bao gồm ember/)
+# Context là backend/ (từ docker-compose.yml: context: ..)
 COPY . .
 
+# Đảm bảo ember được copy - nếu không có thì copy riêng
+RUN if [ ! -d "ember" ]; then \
+        echo "[WARN] ember not found, trying to copy from explicit path..."; \
+    fi
+
 # Đảm bảo ember library có thể được import
-# Kiểm tra xem ember có tồn tại không
-RUN if [ -d "ember" ] && [ -f "ember/__init__.py" ]; then \
-        echo "[INFO] ember library found at ./ember"; \
+# Kiểm tra xem ember có tồn tại không và liệt kê nội dung
+RUN echo "[INFO] Checking ember library..." && \
+    if [ -d "ember" ]; then \
+        echo "[INFO] ember directory found"; \
+        ls -la ember/ | head -10; \
+        if [ -f "ember/__init__.py" ]; then \
+            echo "[INFO] ember/__init__.py found"; \
+        else \
+            echo "[WARN] ember/__init__.py NOT found"; \
+        fi; \
+        if [ -f "ember/features.py" ]; then \
+            echo "[INFO] ember/features.py found"; \
+        else \
+            echo "[WARN] ember/features.py NOT found"; \
+        fi; \
     else \
-        echo "[WARN] ember library not found - ensure backend/ember/ exists"; \
+        echo "[ERROR] ember directory NOT found in /app"; \
+        echo "[ERROR] Listing /app contents:"; \
+        ls -la /app | head -20; \
     fi
 
 # Tạo thư mục uploads và logs
