@@ -30,6 +30,9 @@ lief==0.17.0  # Cần cho ML features extraction
 # ============================================
 lightgbm==4.6.0  # EMBER model sử dụng LightGBM
 numpy==2.2.6  # Cần cho ML features
+# ember - Thư viện extract features cho EMBER model
+# Cài đặt: pip install git+https://github.com/endgameinc/ember.git
+# Hoặc clone và đặt vào backend/ember/ hoặc project root/ember/
 
 # ============================================
 # Security & Authentication

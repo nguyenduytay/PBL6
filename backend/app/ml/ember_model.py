@@ -2,9 +2,9 @@
 EMBER Model - Wrapper cho EMBER LightGBM model
 Load và sử dụng EMBER model để dự đoán malware từ PE files
 """
-import os
-import lightgbm as lgb
-import numpy as np
+import lightgbm as lgb  # type: ignore[import-untyped]
+import numpy as np  # type: ignore[import-untyped]
+import time
 from typing import Dict, Any, Optional, Tuple
 from pathlib import Path
 from app.ml.features import EmberFeatureExtractor
@@ -13,42 +13,40 @@ class EmberModel:
     """Wrapper xử lý EMBER model prediction"""
     
     def __init__(self):
-        # Tên model file (chỉ dùng 1 model)
         self.model_filename = "ember_model_2018.txt"
         self.model_path = self._find_model_path()
         self.model = None
         self.extractor = EmberFeatureExtractor()
         self.threshold = 0.8336  # Ngưỡng EMBER chuẩn tại 1% FPR
-        
-        # Load model khi khởi tạo
         self._load_model()
-        
+    
     def _find_model_path(self) -> Path:
         """Tìm đường dẫn file model EMBER"""
-        # Thư mục models nằm ở backend/models/
         models_dir = Path(__file__).parent.parent.parent / "models"
-        model_path = models_dir / self.model_filename
-        
-        return model_path
+        return models_dir / self.model_filename
 
     def _load_model(self):
         """Load LightGBM model từ file"""
+        start_time = time.time()
+        
         try:
             if not self.model_path.exists():
                 print(f"[WARN] EMBER model file not found at {self.model_path}")
-                print(f"[INFO] Vui lòng đảm bảo file model tồn tại: {self.model_filename}")
                 return
             
-            # Load model bằng LightGBM Booster
+            print(f"[INFO] Loading EMBER model from {self.model_path}...")
+            print(f"[INFO] Model file size: {self.model_path.stat().st_size / (1024*1024):.2f} MB")
+            
             self.model = lgb.Booster(model_file=str(self.model_path))
-            print(f"[INFO] EMBER model loaded successfully from {self.model_path}")
+            
+            elapsed = time.time() - start_time
+            print(f"[INFO] EMBER model loaded successfully in {elapsed:.2f}s")
             print(f"[INFO] Model name: {self.model_filename}")
             print(f"[INFO] Threshold: {self.threshold}")
             
         except Exception as e:
-            # Lỗi khi load model
-            print(f"[ERROR] Failed to load EMBER model: {e}")
-            print(f"[ERROR] Model path: {self.model_path}")
+            elapsed = time.time() - start_time
+            print(f"[ERROR] Failed to load EMBER model after {elapsed:.2f}s: {e}")
             self.model = None
     
     def is_model_loaded(self) -> bool:
@@ -56,17 +54,7 @@ class EmberModel:
         return self.model is not None
     
     def is_pe_file(self, file_path: str) -> Tuple[bool, Optional[str]]:
-        """
-        Kiểm tra xem file có phải PE file không bằng cách đọc MZ header
-        
-        Args:
-            file_path: Đường dẫn đến file cần kiểm tra
-            
-        Returns:
-            Tuple (is_pe: bool, error_detail: Optional[str])
-            - is_pe: True nếu file là PE (bắt đầu với 'MZ'), False nếu không
-            - error_detail: Chi tiết lỗi nếu có (None nếu không có lỗi)
-        """
+        """Kiểm tra file có phải PE file không (kiểm tra MZ header)"""
         try:
             file_path_obj = Path(file_path)
             if not file_path_obj.exists():
@@ -74,33 +62,22 @@ class EmberModel:
             
             file_size = file_path_obj.stat().st_size
             if file_size < 2:
-                return False, f"File too small ({file_size} bytes). PE files must be at least 2 bytes (MZ header)."
+                return False, f"File too small ({file_size} bytes)"
             
             with open(file_path, 'rb') as f:
                 header = f.read(2)
-                # PE file bắt đầu với 'MZ' (0x4D5A)
                 if header == b'MZ':
                     return True, None
                 else:
-                    # Header không đúng format PE
                     header_hex = header.hex().upper() if len(header) == 2 else "N/A"
-                    return False, f"Invalid PE header. Expected 'MZ' (0x4D5A), got: {header_hex} (first 2 bytes: {header})"
+                    return False, f"Invalid PE header. Expected 'MZ', got: {header_hex}"
         except PermissionError as e:
             return False, f"Permission denied: {str(e)}"
         except Exception as e:
             return False, f"Error reading file: {str(e)}"
 
     def predict(self, file_path: str) -> Dict[str, Any]:
-        """
-        Dự đoán file có phải malware không bằng EMBER model
-        
-        Args:
-            file_path: Đường dẫn đến file PE
-            
-        Returns:
-            Dict chứa kết quả dự đoán: score, is_malware, model_name
-        """
-        # Kiểm tra model đã load chưa
+        """Dự đoán file có phải malware không bằng EMBER model"""
         if not self.model:
             return {
                 "error": "Model not loaded", 
@@ -109,10 +86,9 @@ class EmberModel:
                 "model_name": self.model_filename
             }
         
-        # Kiểm tra file có phải PE không
         is_pe, pe_error_detail = self.is_pe_file(file_path)
         if not is_pe:
-            error_msg = f"File is not a valid PE file. EMBER only analyzes PE files (Portable Executable: .exe, .dll, .sys, .scr, etc.). PE files must start with 'MZ' header."
+            error_msg = f"File is not a valid PE file. EMBER only analyzes PE files (.exe, .dll, .sys, etc.). PE files must start with 'MZ' header."
             if pe_error_detail:
                 error_msg += f" Details: {pe_error_detail}"
             return {
@@ -125,36 +101,26 @@ class EmberModel:
             }
             
         try:
-            # Đọc file dưới dạng bytes
             with open(file_path, "rb") as f:
                 bytez = f.read()
             
-            # Trích xuất 2381 features từ file PE
             features = self.extractor.feature_vector(bytez)
             
-            # Kiểm tra số lượng features - Model được train với 2381 features
+            # Kiểm tra và pad features nếu thiếu
             if len(features) != 2381:
-                error_msg = f"Feature count mismatch: Expected 2381, got {len(features)}. Model was trained with 2381 features."
-                print(f"[ERROR] {error_msg}")
-                # Thêm padding hoặc truncate để đạt đúng 2381 features
                 if len(features) < 2381:
-                    # Thêm zeros để đạt 2381
-                    padding = np.zeros(2381 - len(features), dtype=np.float32)
+                    padding_size = 2381 - len(features)
+                    padding = np.zeros(padding_size, dtype=np.float32)
                     features = np.concatenate([features, padding])
-                    print(f"[WARN] Padded {2381 - len(features)} zeros to match model dimensions")
+                    print(f"[WARN] Padded {padding_size} zeros to match model dimensions")
                 else:
-                    # Cắt bớt nếu quá nhiều
+                    truncated_count = len(features) - 2381
                     features = features[:2381]
-                    print(f"[WARN] Truncated features to match model dimensions")
+                    print(f"[WARN] Truncated {truncated_count} features to match model dimensions")
             
-            # Reshape để predict (1 sample, n features)
             features = features.reshape(1, -1)
-            
-            # Dự đoán bằng LightGBM model với disable shape check (tạm thời)
-            # TODO: Fix feature extraction để đúng 2381 features thay vì dùng padding
             score = self.model.predict(features, predict_disable_shape_check=True)[0]
             
-            # So sánh với threshold để xác định malware
             return {
                 "score": float(score),
                 "is_malware": score > self.threshold,
@@ -168,15 +134,13 @@ class EmberModel:
             print(f"[ERROR] EMBER prediction failed for {file_path}: {e}")
             print(error_traceback)
             
-            # Phân loại lỗi chi tiết để dễ debug
             error_type = type(e).__name__
             error_message = str(e)
             
-            # Kiểm tra các lỗi phổ biến
             if "lief" in error_message.lower() or "bad_format" in error_message.lower():
-                error_detail = f"LIEF parsing error: File may be corrupted or not a valid PE file. {error_message}"
+                error_detail = f"LIEF parsing error: {error_message}"
             elif "numpy" in error_message.lower() or "shape" in error_message.lower():
-                error_detail = f"Feature extraction error: Invalid feature shape. {error_message}"
+                error_detail = f"Feature extraction error: {error_message}"
             elif "lightgbm" in error_message.lower() or "model" in error_message.lower():
                 error_detail = f"Model prediction error: {error_message}"
             else:

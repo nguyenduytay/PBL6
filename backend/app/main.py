@@ -127,9 +127,13 @@ async def shutdown_event():
 
 
 # Include API routes
+# Import API routes - có thể mất thời gian do load EMBER model
 try:
+    logger.info("Importing API routes...")
     from app.api.v1 import api_router
+    logger.info("API routes imported successfully")
     app.include_router(api_router, prefix=settings.API_V1_STR)
+    logger.info("API routes registered successfully")
 except ImportError as e:
     logger.error(f"Failed to import API router: {e}")
     logger.warning("API routes not loaded. Check API module imports.")

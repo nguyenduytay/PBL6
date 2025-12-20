@@ -12,15 +12,7 @@ class Predictor:
         self.ember_model = EmberModel()
     
     def predict_ember(self, file_path: str) -> Dict[str, Any]:
-        """
-        Dự đoán bằng EMBER model
-        
-        Args:
-            file_path: Đường dẫn đến file PE
-            
-        Returns:
-            Dict chứa kết quả dự đoán
-        """
+        """Dự đoán bằng EMBER model"""
         return self.ember_model.predict(file_path)
     
     def is_ember_loaded(self) -> bool:
