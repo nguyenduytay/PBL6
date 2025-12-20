@@ -36,9 +36,19 @@ COPY models/ models/
 
 # Normalize line endings cho file model (CRLF -> LF) để tương thích với Linux
 # LightGBM model files cần LF line endings trong Linux
+# Sử dụng tr để xử lý file lớn tốt hơn sed
 RUN if [ -f models/ember_model_2018.txt ]; then \
-        sed -i 's/\r$//' models/ember_model_2018.txt || true; \
-        echo "[INFO] Normalized line endings for EMBER model file"; \
+        echo "[INFO] Normalizing line endings for EMBER model file..."; \
+        tr -d '\r' < models/ember_model_2018.txt > models/ember_model_2018.txt.tmp && \
+        mv models/ember_model_2018.txt.tmp models/ember_model_2018.txt; \
+        echo "[INFO] Line endings normalized successfully"; \
+        # Kiểm tra file size để đảm bảo không bị corrupt
+        FILE_SIZE=$(stat -c%s models/ember_model_2018.txt 2>/dev/null || stat -f%z models/ember_model_2018.txt 2>/dev/null || echo "0"); \
+        if [ "$FILE_SIZE" -lt 1000000 ]; then \
+            echo "[ERROR] Model file seems too small (${FILE_SIZE} bytes) - may be corrupted"; \
+            exit 1; \
+        fi; \
+        echo "[INFO] Model file size: $((FILE_SIZE / 1024 / 1024)) MB"; \
     fi
 
 # Sao chép toàn bộ mã nguồn vào container

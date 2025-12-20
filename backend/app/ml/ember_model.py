@@ -55,16 +55,25 @@ class EmberModel:
                 print(f"[WARN] EMBER model file not found at {self.model_path}")
                 return
             
-            # Thử load model
+            # Kiểm tra file size (model phải > 1MB)
+            file_size = self.model_path.stat().st_size
+            if file_size < 1024 * 1024:
+                print(f"[ERROR] Model file too small ({file_size} bytes) - may be corrupted")
+                self.model = None
+                return
+            
+            # Thử load model - normalize line endings nếu cần
             try:
                 self.model = lgb.Booster(model_file=str(self.model_path))
             except Exception as e1:
-                # Thử normalize line endings nếu cần
-                try:
-                    with open(self.model_path, 'rb') as f:
-                        content = f.read()
-                    if b'\r\n' in content:
-                        content = content.replace(b'\r\n', b'\n')
+                error_msg = str(e1)
+                # Nếu lỗi format, thử normalize line endings
+                if "Model format error" in error_msg or "expect a tree" in error_msg:
+                    try:
+                        with open(self.model_path, 'rb') as f:
+                            content = f.read()
+                        # Normalize: CRLF -> LF, CR -> LF
+                        content = content.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
                         with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.txt') as tmp_file:
                             tmp_file.write(content)
                             tmp_path = tmp_file.name
@@ -75,21 +84,18 @@ class EmberModel:
                                 os.unlink(tmp_path)
                             except:
                                 pass
-                    else:
-                        raise e1
-                except Exception as e2:
-                    print(f"[ERROR] Failed to load EMBER model: {e2}")
-                    raise e2
+                    except Exception as e2:
+                        print(f"[ERROR] Failed to load EMBER model after normalization: {e2}")
+                        raise e2
+                else:
+                    raise e1
             
             elapsed = time.time() - start_time
             print(f"[INFO] EMBER model loaded in {elapsed:.2f}s")
             
         except Exception as e:
             elapsed = time.time() - start_time
-            import traceback
-            error_traceback = traceback.format_exc()
             print(f"[ERROR] Failed to load EMBER model after {elapsed:.2f}s: {e}")
-            print(f"[ERROR] Traceback: {error_traceback}")
             self.model = None
     
     def is_model_loaded(self) -> bool:
