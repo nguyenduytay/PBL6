@@ -14,7 +14,9 @@ from app.ml.features import EmberFeatureExtractor
 
 # Suppress LightGBM warnings về unrecognized parameters
 warnings.filterwarnings('ignore', message='.*unrecognized parameter.*')
+warnings.filterwarnings('ignore', message='.*Ignoring unrecognized parameter.*')
 warnings.filterwarnings('ignore', category=UserWarning)
+warnings.filterwarnings('ignore', category=RuntimeWarning)
 
 class EmberModel:
     """Wrapper xử lý EMBER model prediction"""

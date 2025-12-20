@@ -30,8 +30,16 @@ COPY requirements.txt .
 # Cài đặt các thư viện Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Sao chép toàn bộ mã nguồn vào container
+# Sao chép toàn bộ mã nguồn vào container (bao gồm ember/)
 COPY . .
+
+# Đảm bảo ember library có thể được import
+# Kiểm tra xem ember có tồn tại không
+RUN if [ -d "ember" ] && [ -f "ember/__init__.py" ]; then \
+        echo "[INFO] ember library found at ./ember"; \
+    else \
+        echo "[WARN] ember library not found - ensure backend/ember/ exists"; \
+    fi
 
 # Tạo thư mục uploads và logs
 RUN mkdir -p uploads logs
