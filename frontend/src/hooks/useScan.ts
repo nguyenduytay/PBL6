@@ -2,9 +2,9 @@
  * useScan Hook - Hook để xử lý file scanning
  */
 import { useState } from 'react'
-import { scanFile } from '../api/scan'
+import { scanApi } from '../api'
 import { ScanResponse } from '../datahelper/scan.dataHelper'
-import { ErrorResponse } from '../datahelper/client.dataHelper'
+import { ErrorResponse } from '../api/types'
 
 interface UseScanReturn {
   scan: (file: File) => Promise<void>
@@ -25,7 +25,7 @@ export const useScan = (): UseScanReturn => {
     setResult(null)
 
     try {
-      const data = await scanFile(file)
+      const data = await scanApi.scanFile(file)
       setResult(data)
     } catch (err) {
       setError(err as ErrorResponse)

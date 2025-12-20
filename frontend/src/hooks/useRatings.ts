@@ -2,20 +2,14 @@
  * useRatings Hook - Hook để xử lý ratings
  */
 import { useState } from 'react'
-import {
-  createRating,
-  getRatings,
-  updateRating,
-  deleteRating,
-  getRatingStats,
-} from '../api/ratings'
+import { ratingsApi } from '../api'
 import {
   CreateRatingRequest,
   UpdateRatingRequest,
   RatingResponse,
   RatingStatsResponse,
 } from '../datahelper/ratings.dataHelper'
-import { ErrorResponse } from '../datahelper/client.dataHelper'
+import { ErrorResponse } from '../api/types'
 
 interface UseRatingsReturn {
   create: (request: CreateRatingRequest) => Promise<void>
@@ -41,7 +35,7 @@ export const useRatings = (): UseRatingsReturn => {
     setError(null)
 
     try {
-      await createRating(request)
+      await ratingsApi.createRating(request)
       // Refresh ratings list
       if (request.analysis_id) {
         await handleGetList(request.analysis_id)
@@ -62,7 +56,7 @@ export const useRatings = (): UseRatingsReturn => {
     setError(null)
 
     try {
-      const data = await getRatings(analysisId, limit, offset)
+      const data = await ratingsApi.getRatings(analysisId, limit, offset)
       setRatings(data)
     } catch (err) {
       setError(err as ErrorResponse)
@@ -76,7 +70,7 @@ export const useRatings = (): UseRatingsReturn => {
     setError(null)
 
     try {
-      await updateRating(ratingId, request)
+      await ratingsApi.updateRating(ratingId, request)
       // Refresh ratings list
       const updatedRating = ratings.find((r) => r.id === ratingId)
       if (updatedRating) {
@@ -94,7 +88,7 @@ export const useRatings = (): UseRatingsReturn => {
     setError(null)
 
     try {
-      await deleteRating(ratingId)
+      await ratingsApi.deleteRating(ratingId)
       // Refresh ratings list
       const deletedRating = ratings.find((r) => r.id === ratingId)
       if (deletedRating) {
@@ -112,7 +106,7 @@ export const useRatings = (): UseRatingsReturn => {
     setError(null)
 
     try {
-      const data = await getRatingStats(analysisId)
+      const data = await ratingsApi.getRatingStats(analysisId)
       setStats(data)
     } catch (err) {
       setError(err as ErrorResponse)

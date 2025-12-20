@@ -2,9 +2,9 @@
  * useBatchScan Hook - Hook để xử lý batch scanning
  */
 import { useState } from 'react'
-import { scanFolder, scanFolderUpload, scanBatch, getBatchResult, getBatchStatus } from '../api/batchScan'
+import { batchScanApi } from '../api'
 import { BatchScanResponse, BatchScanResult, BatchScanFolderRequest } from '../datahelper/batchScan.dataHelper'
-import { ErrorResponse } from '../datahelper/client.dataHelper'
+import { ErrorResponse } from '../api/types'
 
 interface UseBatchScanReturn {
   scanFolder: (request: BatchScanFolderRequest) => Promise<void>
@@ -32,7 +32,7 @@ export const useBatchScan = (): UseBatchScanReturn => {
     setStatus(null)
 
     try {
-      const data = await scanFolder(request)
+      const data = await batchScanApi.scanFolder(request)
       setStatus(data)
     } catch (err) {
       setError(err as ErrorResponse)
@@ -48,7 +48,7 @@ export const useBatchScan = (): UseBatchScanReturn => {
     setStatus(null)
 
     try {
-      const data = await scanFolderUpload(files)
+      const data = await batchScanApi.scanFolderUpload(files)
       setStatus(data)
     } catch (err) {
       setError(err as ErrorResponse)
@@ -64,7 +64,7 @@ export const useBatchScan = (): UseBatchScanReturn => {
     setStatus(null)
 
     try {
-      const data = await scanBatch(file)
+      const data = await batchScanApi.scanBatch(file)
       setStatus(data)
     } catch (err) {
       setError(err as ErrorResponse)
@@ -78,7 +78,7 @@ export const useBatchScan = (): UseBatchScanReturn => {
     setError(null)
 
     try {
-      const data = await getBatchResult(batchId)
+      const data = await batchScanApi.getBatchResult(batchId)
       setResult(data)
     } catch (err) {
       setError(err as ErrorResponse)
@@ -92,7 +92,7 @@ export const useBatchScan = (): UseBatchScanReturn => {
     setError(null)
 
     try {
-      const data = await getBatchStatus(batchId)
+      const data = await batchScanApi.getBatchStatus(batchId)
       setStatus(data)
     } catch (err) {
       setError(err as ErrorResponse)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { searchAnalyses } from '../../api/search'
+import { searchApi } from '../../api'
 import { Card, PageHeader, ErrorState } from '../../components/UI'
 import { LoadingStateRing } from '../../components/LoadingState'
 import { SearchInput, SearchResults } from './components'
@@ -41,7 +41,7 @@ const Search: React.FC = () => {
     currentQuery.current = query.trim()
 
     try {
-      const data = await searchAnalyses(currentQuery.current, SEARCH_LIMIT, currentOffset.current)
+      const data = await searchApi.searchAnalyses(currentQuery.current, SEARCH_LIMIT, currentOffset.current)
       
       if (data && data.items) {
         if (reset) {

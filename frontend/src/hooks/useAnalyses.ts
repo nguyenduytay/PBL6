@@ -2,13 +2,13 @@
  * useAnalyses Hook - Hook để xử lý analyses data
  */
 import { useState, useEffect } from 'react'
-import { getAnalyses, getAnalysisById, getAnalysisStats, deleteAnalysis } from '../api/analyses'
+import { analysesApi } from '../api'
 import {
   AnalysisDetailResponse,
   AnalysisListItemResponse,
   AnalysisStatsResponse,
 } from '../datahelper/analyses.dataHelper'
-import { ErrorResponse } from '../datahelper/client.dataHelper'
+import { ErrorResponse } from '../api/types'
 
 interface UseAnalysesReturn {
   analyses: AnalysisListItemResponse[]
@@ -31,7 +31,7 @@ export const useAnalyses = (limit: number = 100, offset: number = 0): UseAnalyse
     setError(null)
 
     try {
-      const data = await getAnalyses(limit, offset)
+      const data = await analysesApi.getAnalyses({ limit, offset })
       setAnalyses(Array.isArray(data.items) ? data.items : [])
       setTotal(data.total || 0)
     } catch (err) {
@@ -48,7 +48,7 @@ export const useAnalyses = (limit: number = 100, offset: number = 0): UseAnalyse
 
   const deleteAnalysisById = async (id: number): Promise<void> => {
     try {
-      await deleteAnalysis(id)
+      await analysesApi.deleteAnalysis(id)
       // Refresh danh sách sau khi xóa
       await fetchAnalyses()
     } catch (err) {
@@ -58,7 +58,7 @@ export const useAnalyses = (limit: number = 100, offset: number = 0): UseAnalyse
 
   const deleteAnalysisByIdWithoutRefetch = async (id: number): Promise<void> => {
     try {
-      await deleteAnalysis(id)
+      await analysesApi.deleteAnalysis(id)
       // Không tự động refetch, để component tự quyết định khi nào refetch
     } catch (err) {
       throw err as ErrorResponse
@@ -98,7 +98,7 @@ export const useAnalysis = (id: number | undefined): UseAnalysisReturn => {
     setError(null)
 
     try {
-      const data = await getAnalysisById(id)
+      const data = await analysesApi.getAnalysisById(id)
       setAnalysis(data)
     } catch (err) {
       setError(err as ErrorResponse)
@@ -136,7 +136,7 @@ export const useAnalysisStats = (): UseAnalysisStatsReturn => {
     setError(null)
 
     try {
-      const data = await getAnalysisStats()
+      const data = await analysesApi.getAnalysisStats()
       setStats(data)
     } catch (err) {
       setError(err as ErrorResponse)

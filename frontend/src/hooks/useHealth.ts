@@ -2,9 +2,9 @@
  * useHealth Hook - Hook để check health status
  */
 import { useState, useEffect } from 'react'
-import { healthCheck } from '../api/health'
+import { healthApi } from '../api'
 import { HealthCheckResponse } from '../datahelper/health.dataHelper'
-import { ErrorResponse } from '../datahelper/client.dataHelper'
+import { ErrorResponse } from '../api/types'
 
 interface UseHealthReturn {
   health: HealthCheckResponse | null
@@ -23,7 +23,7 @@ export const useHealth = (): UseHealthReturn => {
     setError(null)
 
     try {
-      const data = await healthCheck()
+      const data = await healthApi.healthCheck()
       setHealth(data)
     } catch (err) {
       setError(err as ErrorResponse)

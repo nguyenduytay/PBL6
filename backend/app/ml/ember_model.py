@@ -14,7 +14,7 @@ class EmberModel:
     
     def __init__(self):
         # Tên model file (chỉ dùng 1 model)
-        self.model_filename = "20251219_002656_ember_model_pycharm.txt"
+        self.model_filename = "ember_model_2018.txt"
         self.model_path = self._find_model_path()
         self.model = None
         self.extractor = EmberFeatureExtractor()

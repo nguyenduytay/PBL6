@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Button } from '../UI'
 import { useTranslation } from '../../hooks/useTranslation'
-import { exportAnalysesCSV, exportAnalysesJSON, exportAnalysesExcel } from '../../api/export'
+import { exportApi } from '../../api'
 
 interface ExportButtonsProps {
   onExportCSV?: () => Promise<Blob>
@@ -26,7 +26,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
     try {
       const blob = onExportCSV 
         ? await onExportCSV()
-        : await exportAnalysesCSV(limit, offset)
+        : await exportApi.exportAnalysesCSV(limit, offset)
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -50,7 +50,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
     try {
       const data = onExportJSON
         ? await onExportJSON()
-        : await exportAnalysesJSON(limit, offset)
+        : await exportApi.exportAnalysesJSON(limit, offset)
       const dataStr = JSON.stringify(data, null, 2)
       const blob = new Blob([dataStr], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
@@ -71,7 +71,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
     try {
       const blob = onExportExcel
         ? await onExportExcel()
-        : await exportAnalysesExcel(limit, offset)
+        : await exportApi.exportAnalysesExcel(limit, offset)
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
