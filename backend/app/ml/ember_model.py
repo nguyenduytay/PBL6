@@ -7,9 +7,14 @@ import numpy as np  # type: ignore[import-untyped]
 import time
 import os
 import tempfile
+import warnings
 from typing import Dict, Any, Optional, Tuple
 from pathlib import Path
 from app.ml.features import EmberFeatureExtractor
+
+# Suppress LightGBM warnings về unrecognized parameters
+warnings.filterwarnings('ignore', message='.*unrecognized parameter.*')
+warnings.filterwarnings('ignore', category=UserWarning)
 
 class EmberModel:
     """Wrapper xử lý EMBER model prediction"""
@@ -28,22 +33,19 @@ class EmberModel:
         default_models_dir = Path(__file__).parent.parent.parent / "models"
         default_path = default_models_dir / self.model_filename
         
-        # Thử các vị trí có thể
+        # Thử các vị trí có thể (ưu tiên Docker volume mount)
         possible_paths = [
-            default_models_dir,  # backend/models (mặc định - ưu tiên)
-            Path("/app/models"),  # Docker container path (nếu có volume mount)
+            Path("/app/models"),  # Docker container path (volume mount - ưu tiên)
+            default_models_dir,  # backend/models (local development)
             Path("/models"),  # Alternative Docker path
         ]
         
         for models_dir in possible_paths:
             model_path = models_dir / self.model_filename
             if model_path.exists():
-                if models_dir != default_models_dir:
-                    print(f"[INFO] Found EMBER model at: {model_path}")
                 return model_path
         
         # Trả về đường dẫn mặc định nếu không tìm thấy
-        print(f"[WARN] Model not found, using default path: {default_path}")
         return default_path
 
     def _load_model(self):
@@ -52,7 +54,6 @@ class EmberModel:
         
         try:
             if not self.model_path.exists():
-                print(f"[WARN] EMBER model file not found at {self.model_path}")
                 return
             
             # Kiểm tra file size (model phải > 1MB)
@@ -62,23 +63,57 @@ class EmberModel:
                 self.model = None
                 return
             
-            # Thử load model - normalize line endings nếu cần
+            # Kiểm tra và normalize line endings nếu cần (CRLF -> LF cho Linux)
+            # Đọc một phần file để kiểm tra line endings
+            needs_normalization = False
             try:
-                self.model = lgb.Booster(model_file=str(self.model_path))
+                with open(self.model_path, 'rb') as f:
+                    sample = f.read(8192)  # Đọc 8KB đầu tiên
+                    if b'\r\n' in sample or (b'\r' in sample and b'\n' not in sample[:100]):
+                        needs_normalization = True
+            except:
+                pass
+            
+            # Load model - normalize nếu cần
+            # Suppress LightGBM warnings
+            try:
+                if needs_normalization:
+                    # Normalize toàn bộ file vào temp file
+                    with open(self.model_path, 'rb') as f:
+                        content = f.read()
+                    content = content.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+                    with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.txt') as tmp_file:
+                        tmp_file.write(content)
+                        tmp_path = tmp_file.name
+                    try:
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("ignore")
+                            self.model = lgb.Booster(model_file=tmp_path)
+                    finally:
+                        try:
+                            os.unlink(tmp_path)
+                        except:
+                            pass
+                else:
+                    # Load trực tiếp
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
+                        self.model = lgb.Booster(model_file=str(self.model_path))
             except Exception as e1:
                 error_msg = str(e1)
-                # Nếu lỗi format, thử normalize line endings
+                # Nếu vẫn lỗi format, thử normalize lại
                 if "Model format error" in error_msg or "expect a tree" in error_msg:
                     try:
                         with open(self.model_path, 'rb') as f:
                             content = f.read()
-                        # Normalize: CRLF -> LF, CR -> LF
                         content = content.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
                         with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.txt') as tmp_file:
                             tmp_file.write(content)
                             tmp_path = tmp_file.name
                         try:
-                            self.model = lgb.Booster(model_file=tmp_path)
+                            with warnings.catch_warnings():
+                                warnings.simplefilter("ignore")
+                                self.model = lgb.Booster(model_file=tmp_path)
                         finally:
                             try:
                                 os.unlink(tmp_path)
@@ -90,8 +125,7 @@ class EmberModel:
                 else:
                     raise e1
             
-            elapsed = time.time() - start_time
-            print(f"[INFO] EMBER model loaded in {elapsed:.2f}s")
+            # Model loaded successfully - không cần log
             
         except Exception as e:
             elapsed = time.time() - start_time
@@ -168,59 +202,64 @@ class EmberModel:
                 bytez = f.read()
             
             # Sử dụng ember.predict_sample() - cách chính thức
-            try:
-                import ember
-                if self.model is None:
-                    raise ValueError("Model not loaded")
-                
-                score = ember.predict_sample(self.model, bytez, feature_version=2)
-                score = float(score)
-                
-                # Kiểm tra score = 0.0 có phải do lỗi không
-                if score == 0.0:
-                    test_features = self.extractor.feature_vector(bytez)
-                    if np.all(test_features == 0):
+            # Suppress warnings khi predict
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                try:
+                    import ember
+                    if self.model is None:
+                        raise ValueError("Model not loaded")
+                    
+                    score = ember.predict_sample(self.model, bytez, feature_version=2)
+                    score = float(score)
+                    
+                    # Kiểm tra score = 0.0 có phải do lỗi không
+                    if score == 0.0:
+                        test_features = self.extractor.feature_vector(bytez)
+                        if np.all(test_features == 0):
+                            return {
+                                "error": "Score is 0.0 and feature vector is all zeros - extraction likely failed",
+                                "is_malware": False,
+                                "score": 0.0,
+                                "model_name": self.model_filename,
+                                "file_path": str(file_path)
+                            }
+                        
+                except (ImportError, Exception) as err:
+                    # Fallback: extract features trực tiếp
+                    features = self.extractor.feature_vector(bytez)
+                    
+                    if features is None or len(features) == 0:
                         return {
-                            "error": "Score is 0.0 and feature vector is all zeros - extraction likely failed",
+                            "error": "Feature extraction returned empty vector",
                             "is_malware": False,
                             "score": 0.0,
                             "model_name": self.model_filename,
                             "file_path": str(file_path)
                         }
                     
-            except (ImportError, Exception) as err:
-                # Fallback: extract features trực tiếp
-                features = self.extractor.feature_vector(bytez)
-                
-                if features is None or len(features) == 0:
-                    return {
-                        "error": "Feature extraction returned empty vector",
-                        "is_malware": False,
-                        "score": 0.0,
-                        "model_name": self.model_filename,
-                        "file_path": str(file_path)
-                    }
-                
-                if np.all(features == 0):
-                    return {
-                        "error": "Feature vector contains only zeros - extraction likely failed",
-                        "is_malware": False,
-                        "score": 0.0,
-                        "model_name": self.model_filename,
-                        "file_path": str(file_path)
-                    }
-                
-                # Pad/truncate features nếu cần
-                if len(features) != 2381:
-                    if len(features) < 2381:
-                        padding = np.zeros(2381 - len(features), dtype=np.float32)
-                        features = np.concatenate([features, padding])
-                    else:
-                        features = features[:2381]
-                
-                features = np.array(features, dtype=np.float32)
-                score = self.model.predict([features])[0]
-                score = float(score)
+                    if np.all(features == 0):
+                        return {
+                            "error": "Feature vector contains only zeros - extraction likely failed",
+                            "is_malware": False,
+                            "score": 0.0,
+                            "model_name": self.model_filename,
+                            "file_path": str(file_path)
+                        }
+                    
+                    # Pad/truncate features nếu cần
+                    if len(features) != 2381:
+                        if len(features) < 2381:
+                            padding = np.zeros(2381 - len(features), dtype=np.float32)
+                            features = np.concatenate([features, padding])
+                        else:
+                            features = features[:2381]
+                    
+                    features = np.array(features, dtype=np.float32)
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
+                        score = self.model.predict([features])[0]
+                    score = float(score)
             
             return {
                 "score": float(score),

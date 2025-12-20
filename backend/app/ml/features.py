@@ -3,6 +3,12 @@ EMBER Feature Extractor - Trích xuất 2381 features từ PE file
 Sử dụng thư viện ember chính thức để extract features
 """
 import numpy as np  # type: ignore[import-untyped]
+import warnings
+import os
+
+# Suppress warnings không cần thiết
+warnings.filterwarnings('ignore', category=UserWarning)
+os.environ['PYTHONWARNINGS'] = 'ignore'
 
 class EmberFeatureExtractor:
     """Trích xuất features từ file PE cho EMBER model"""
@@ -19,14 +25,16 @@ class EmberFeatureExtractor:
             # Thử import từ package đã cài đặt
             import ember  # type: ignore[import-untyped]
             from ember.features import PEFeatureExtractor  # type: ignore[import-untyped]
-            self._extractor = PEFeatureExtractor(self.feature_version)
-            print(f"[INFO] ember library loaded from installed package")
+            # Suppress LIEF version warnings
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                self._extractor = PEFeatureExtractor(self.feature_version)
             return
         except ImportError as e:
             # Không có package, thử load từ source code
             pass
         except Exception as e:
-            print(f"[WARN] Error importing ember package: {e}")
+            pass  # Suppress warning
         
         # Thử load từ backend/ember
         try:
@@ -48,14 +56,11 @@ class EmberFeatureExtractor:
                     import ember  # type: ignore[import-untyped]
                 
                 from ember.features import PEFeatureExtractor  # type: ignore[import-untyped]
-                self._extractor = PEFeatureExtractor(self.feature_version)
-                print(f"[INFO] ember library loaded from: {ember_dir}")
-            else:
-                print(f"[WARN] ember library not found at {ember_dir}")
-        except Exception as e:
-            import traceback
-            print(f"[WARN] Error loading ember module from source: {e}")
-            print(f"[WARN] Traceback: {traceback.format_exc()}")
+                # Suppress LIEF version warnings
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    self._extractor = PEFeatureExtractor(self.feature_version)
+        except Exception:
             self._extractor = None
 
     def feature_vector(self, bytez: bytes) -> np.ndarray:
@@ -75,17 +80,13 @@ class EmberFeatureExtractor:
             
             # Kiểm tra features có toàn số 0 không (có thể do lỗi)
             if np.all(features_array == 0):
-                print(f"[WARN] Feature vector contains only zeros - this may indicate extraction error")
-                print(f"[WARN] File may not be a valid PE file or extraction failed")
                 # Vẫn trả về nhưng có warning - để model tự quyết định
+                pass
             
             return features_array
             
         except Exception as e:
-            import traceback
             error_msg = f"Error extracting features: {str(e)}"
-            print(f"[ERROR] {error_msg}")
-            print(f"[ERROR] Traceback: {traceback.format_exc()}")
             # Không trả về zero vector - throw exception để caller xử lý
             raise RuntimeError(error_msg) from e
 

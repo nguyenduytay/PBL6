@@ -50,9 +50,9 @@ services:
       - ../logs:/app/logs
       # Mount YARA rules để có thể update rules mà không cần rebuild
       - ../yara_rules:/app/yara_rules
-      # Models đã được copy vào image trong Dockerfile, không cần mount
-      # Nếu muốn update model mà không rebuild, có thể uncomment dòng sau:
-      # - ../models:/app/models
+      # Mount models folder để tránh vấn đề copy file lớn vào image
+      # File model sẽ được normalize khi container start
+      - ../models:/app/models
       # Mount malware database JSON file
       - ../src/Database/Malware.json:/app/src/Database/Malware.json
     depends_on:
