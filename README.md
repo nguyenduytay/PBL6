@@ -62,12 +62,47 @@ Dự án được xây dựng theo **kiến trúc 3-tier** hiện đại:
 
 ### 1. Phát Hiện Malware Tự Động
 
+**Sơ đồ tổng hợp quy trình phát hiện malware:**
+
+```mermaid
+flowchart TD
+    A[Tải file lên\nGiao diện web] --> B[Kiểm tra file và lưu trữ\nKiểm tra loại và dung lượng\nLưu vào thư mục uploads]
+
+    B --> C[Quét YARA\n12159 luật]
+    B --> D[Phát hiện bằng EMBER\n2381 đặc trưng\nLightGBM]
+
+    C --> E[Kết quả YARA\nLuật khớp\nTag và chuỗi]
+    D --> F[Kết quả EMBER\nĐiểm số 0.0 đến 1.0\nMalware hoặc sạch]
+
+    E --> G[Bộ quyết định\nTổng hợp kết quả]
+    F --> G
+
+    G --> H[Kết luận cuối cùng\nMalware hoặc sạch\nMức độ và phân loại]
+
+    H --> I[Lưu vào CSDL\nTrả JSON cho frontend]
+```
+
 #### YARA Rules Scanning
 - **12,159+ YARA rules** từ Yara-Rules project (chính thức)
 - Phát hiện các loại malware: Trojan, Ransomware, Backdoor, Virus, Worm
 - Phát hiện CVE exploits, packers, obfuscators, webshells
 - Pattern matching dựa trên strings, hex patterns, regular expressions
 - Chi tiết matched strings với offset và data preview
+
+**Sơ đồ luồng YARA Scanning:**
+
+```mermaid
+flowchart TD
+    A[Tải file lên\nPE DLL EXE Script] --> B[Khởi tạo YARA Engine\nNạp và biên dịch luật]
+
+    B --> C[So khớp mẫu\nChuỗi\nHex pattern\nRegex]
+
+    C --> D[Đánh giá điều kiện luật\nAND OR NOT]
+
+    D --> E[Trích xuất chuỗi khớp\nOffset và dữ liệu]
+
+    E --> F[Kết quả YARA\nTên luật\nTag\nTác giả\nChuỗi khớp]
+```
 
 #### Hash-Based Detection
 - Tính toán SHA256, MD5, SHA1 của file
@@ -91,6 +126,38 @@ Dự án được xây dựng theo **kiến trúc 3-tier** hiện đại:
 - Phát hiện malware dựa trên behavioral patterns
 - Score từ 0.0 đến 1.0 (threshold: 0.8336)
 - Feature extraction tự động từ PE files
+
+**Pipeline EMBER Detection:**
+
+```mermaid
+flowchart TD
+    A[File PE đầu vào\nexe dll] --> B[Trích xuất đặc trưng\nThư viện EMBER]
+
+    B --> B1[Byte Histogram]
+    B --> B2[Byte Entropy]
+    B --> B3[Đặc trưng chuỗi]
+    B --> B4[Thông tin header]
+    B --> B5[Đặc trưng section]
+    B --> B6[Import Export]
+    B --> B7[Data Directories]
+
+    B1 --> C[Vector đặc trưng\n2381 đặc trưng]
+    B2 --> C
+    B3 --> C
+    B4 --> C
+    B5 --> C
+    B6 --> C
+    B7 --> C
+
+    C --> D[Mô hình LightGBM\nEMBER 2018]
+
+    D --> E[Tính điểm\n0.0 đến 1.0]
+
+    E --> F{Điểm lớn hơn 0.8336}
+
+    F -->|Có| G[Malware]
+    F -->|Không| H[File sạch]
+```
 
 ### 2. Quản Lý Phân Tích
 
@@ -734,10 +801,10 @@ WS /api/ws/{task_id}
 - **MySQL 8.0**: Database (Docker)
 - **YARA**: Malware detection engine
 - **Pydantic**: Data validation
-- **LightGBM**: Machine Learning framework (EMBER)
+- **LightGBM**: Machine Learning framework (EMBER model - chính)
 - **LIEF**: PE file parsing
-- **Pandas**: Data processing (cho ember)
-- **Scikit-learn**: ML utilities (cho ember)
+- **Pandas**: Data processing (cho ember library)
+- **Scikit-learn**: ML utilities (cho ember library - GridSearchCV, metrics, FeatureHasher)
 
 ### Infrastructure
 - **Docker**: Containerization (backend)
