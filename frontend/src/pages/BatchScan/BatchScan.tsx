@@ -3,14 +3,13 @@ import { useBatchScan } from '../../hooks/useBatchScan'
 import { Card, Button, Badge, PageHeader, ErrorState } from '../../components/UI'
 import { useTranslation } from '../../hooks/useTranslation'
 import { MAX_UPLOAD_SIZE_GB, MAX_UPLOAD_SIZE_BYTES } from '../../constants'
-import { validateFilesTotalSize, validateFileSize, formatFileSizeGB, filterFilesByExtension, getFolderNameFromFile } from '../../utils'
+import { validateFilesTotalSize, formatFileSizeGB, filterFilesByExtension, getFolderNameFromFile } from '../../utils'
 
 const BatchScan: React.FC = () => {
   const { t } = useTranslation()
-  const { scanFolderUpload, scanBatch, getStatus, status, result, loading, error } = useBatchScan()
+  const { scanFolderUpload, getStatus, status, result, loading, error } = useBatchScan()
   const [fileExtensions, setFileExtensions] = useState('')
   const [batchId, setBatchId] = useState('')
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedFolder, setSelectedFolder] = useState<FileList | null>(null)
   const [selectedFolderName, setSelectedFolderName] = useState<string>('')
   const [totalSize, setTotalSize] = useState<number>(0)
@@ -87,22 +86,6 @@ const BatchScan: React.FC = () => {
     }
   }
 
-  const handleScanBatch = async () => {
-    if (!selectedFile) return
-    
-    const validation = validateFileSize(selectedFile.size)
-    if (!validation.isValid) {
-      const sizeGB = formatFileSizeGB(selectedFile.size)
-      alert(t('batchScan.fileSizeExceedsMax', { sizeGB, maxGB: MAX_UPLOAD_SIZE_GB }))
-      return
-    }
-    
-    await scanBatch(selectedFile)
-    if (status) {
-      setBatchId(status.batch_id)
-    }
-  }
-
   const handleCheckStatus = async () => {
     if (!batchId) return
     await getStatus(batchId)
@@ -114,7 +97,7 @@ const BatchScan: React.FC = () => {
         translationKey={{ title: 'batchScan.title', subtitle: 'batchScan.subtitle' }}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Scan Folder */}
         <Card title={t('batchScan.scanFolder')} subtitle={t('batchScan.scanFolderSubtitle')}>
           <div className="space-y-4">
@@ -187,72 +170,6 @@ const BatchScan: React.FC = () => {
               className="w-full"
             >
               {loading ? t('batchScan.scanning') : t('batchScan.scanFolder')}
-            </Button>
-          </div>
-        </Card>
-
-        {/* Scan Archive */}
-        <Card title={t('batchScan.scanArchive')} subtitle={t('batchScan.scanArchiveSubtitle')}>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                {t('batchScan.archiveFile')}
-              </label>
-              <input
-                type="file"
-                id="archive-upload"
-                accept=".zip,.tar,.gz,.bz2,.tar.gz,.tar.bz2"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] || null
-                  setSelectedFile(file)
-                }}
-                className="hidden"
-              />
-              <div className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg flex items-center">
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('archive-upload')?.click()}
-                  disabled={loading}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {t('batchScan.chooseFileButton')}
-                </button>
-                <span className="ml-4 text-gray-400 text-sm">
-                  {selectedFile?.name || t('common.noFileSelected')}
-                </span>
-              </div>
-              {!selectedFile && (
-                <p className="mt-2 text-sm text-gray-500">{t('common.noFileSelected')}</p>
-              )}
-              {selectedFile && (
-                <div className="mt-2 space-y-1">
-                  <p className="text-sm text-green-400">
-                    {t('batchScan.selected')}: {selectedFile.name}
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    {t('batchScan.size')}: {formatFileSizeGB(selectedFile.size)} / {MAX_UPLOAD_SIZE_GB} {t('batchScan.unitGB')}
-                  </p>
-                  {selectedFile.size > MAX_UPLOAD_SIZE_BYTES && (
-                    <p className="text-sm text-red-400">
-                      {t('batchScan.fileSizeExceedsMax', { sizeGB: formatFileSizeGB(selectedFile.size), maxGB: MAX_UPLOAD_SIZE_GB })}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="text-sm text-gray-400">
-              <p>{t('batchScan.archiveSupportedFormats')}:</p>
-              <ul className="list-disc list-inside mt-1 space-y-1">
-                <li>{t('batchScan.zip')}</li>
-                <li>{t('batchScan.tar')}</li>
-                <li>{t('batchScan.gzip')}</li>
-                <li>{t('batchScan.bzip2')}</li>
-              </ul>
-            </div>
-
-            <Button onClick={handleScanBatch} disabled={loading || !selectedFile || (selectedFile?.size || 0) > MAX_UPLOAD_SIZE_BYTES} className="w-full">
-              {loading ? t('batchScan.scanning') : t('batchScan.scanArchive')}
             </Button>
           </div>
         </Card>

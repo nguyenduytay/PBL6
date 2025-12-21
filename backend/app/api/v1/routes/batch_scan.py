@@ -11,6 +11,13 @@ from typing import List, Optional
 from fastapi import APIRouter, File, UploadFile, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 
+# Thử import rarfile để hỗ trợ RAR (optional)
+try:
+    import rarfile
+    RAR_SUPPORT = True
+except ImportError:
+    RAR_SUPPORT = False
+
 # Thêm project root vào path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 if project_root not in sys.path:
@@ -141,8 +148,26 @@ def extract_archive(file_path: Path, extract_to: Path) -> List[Path]:
             raise ValueError(f"Invalid TAR file: {file_path.name}")
         except Exception as e:
             raise ValueError(f"Error extracting TAR file: {str(e)}")
+    
+    # Xử lý file RAR
+    elif file_ext == '.rar' or file_name_lower.endswith('.rar'):
+        if not RAR_SUPPORT:
+            raise ValueError(f"RAR support not available. Please install rarfile: pip install rarfile")
+        try:
+            with rarfile.RarFile(file_path, 'r') as rar_ref:
+                rar_ref.extractall(extract_to)
+                for member in rar_ref.namelist():
+                    extracted_files.append(extract_to / member)
+        except rarfile.BadRarFile:
+            raise ValueError(f"Invalid RAR file: {file_path.name}")
+        except Exception as e:
+            raise ValueError(f"Error extracting RAR file: {str(e)}")
+    
     else:
-        raise ValueError(f"Unsupported archive format: {file_path.name}. Supported: ZIP, TAR, GZ, BZ2")
+        supported_formats = "ZIP, TAR, GZ, BZ2"
+        if RAR_SUPPORT:
+            supported_formats += ", RAR"
+        raise ValueError(f"Unsupported archive format: {file_path.name}. Supported: {supported_formats}")
     
     # Chỉ trả về file (bỏ qua thư mục)
     return [f for f in extracted_files if f.is_file()]
