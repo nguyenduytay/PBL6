@@ -56,11 +56,11 @@ const AnalysesTable: React.FC<AnalysesTableProps> = ({
           </Badge>
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-          {analysis.analysis_time?.toFixed(2)}s
+          {analysis.analysis_time ? `${analysis.analysis_time.toFixed(2)}${t('common.unitSeconds')}` : '-'}
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
           {analysis.created_at
-            ? new Date(analysis.created_at).toLocaleString('vi-VN')
+            ? new Date(analysis.created_at).toLocaleDateString() + ' ' + new Date(analysis.created_at).toLocaleTimeString()
             : '-'}
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

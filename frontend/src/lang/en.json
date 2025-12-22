@@ -23,7 +23,13 @@
     "noFolderSelected": "No folder selected",
     "expandSidebar": "Expand sidebar",
     "collapseSidebar": "Collapse sidebar",
-    "systemInfo": "System Info"
+    "systemInfo": "System Info",
+    "unitMB": "MB",
+    "unitGB": "GB",
+    "unitKB": "KB",
+    "unitBytes": "bytes",
+    "unitSeconds": "s",
+    "ratingOutOf": "/5"
   },
   "pagination": {
     "itemsPerPage": "Items per page",
@@ -102,6 +108,7 @@
     "score": "Score",
     "threshold": "Threshold",
     "viewMore": "View more →",
+    "veryCleanFile": "Very clean file",
     "peFile": "PE",
     "notPeFile": "Not PE",
     "resultType": "Result Type"
@@ -235,7 +242,9 @@
     "malwareTypeRansomware": "Ransomware",
     "malwareTypeKeylogger": "Keylogger",
     "importantNote": "Important Note",
-    "yaraLimitationNote": "YARA is a static analysis tool based on patterns. YARA results are only part of a complete malware analysis process. Should combine with other methods: dynamic analysis, memory analysis, reverse engineering."
+    "yaraLimitationNote": "YARA is a static analysis tool based on patterns. YARA results are only part of a complete malware analysis process. Should combine with other methods: dynamic analysis, memory analysis, reverse engineering.",
+    "ruleDefault": "Rule {{index}}",
+    "matchesCount": "{{count}} {{rules}} matched"
   },
   "batchScan": {
     "title": "Batch Scan",

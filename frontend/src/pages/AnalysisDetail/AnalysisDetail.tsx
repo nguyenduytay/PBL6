@@ -98,21 +98,21 @@ const AnalysisDetail: React.FC = () => {
             <p className="text-sm text-gray-400 mb-1">{t('analysisDetail.fileSize')}</p>
             <p className="text-white font-medium">
               {analysis.file_size
-                ? `${(analysis.file_size / 1024 / 1024).toFixed(2)} MB`
+                ? `${(analysis.file_size / 1024 / 1024).toFixed(2)} ${t('common.unitMB')}`
                 : t('analysisDetail.na')}
             </p>
           </div>
           <div>
             <p className="text-sm text-gray-400 mb-1">{t('analysisDetail.analysisTime')}</p>
             <p className="text-white font-medium">
-              {analysis.analysis_time?.toFixed(2)}s
+              {analysis.analysis_time ? `${analysis.analysis_time.toFixed(2)}${t('common.unitSeconds')}` : t('analysisDetail.na')}
             </p>
           </div>
           <div>
             <p className="text-sm text-gray-400 mb-1">{t('analysisDetail.createdAt')}</p>
             <p className="text-white font-medium">
               {analysis.created_at
-                ? new Date(analysis.created_at).toLocaleString()
+                ? new Date(analysis.created_at).toLocaleDateString() + ' ' + new Date(analysis.created_at).toLocaleTimeString()
                 : t('analysisDetail.na')}
             </p>
           </div>
@@ -138,11 +138,11 @@ const AnalysisDetail: React.FC = () => {
       {/* YARA Matches */}
       {analysis.yara_matches && Array.isArray(analysis.yara_matches) && analysis.yara_matches.length > 0 && (
         <>
-          <Card
-            title={`${t('analysisDetail.yaraMatches')} (${analysis.yara_matches.length})`}
-            subtitle={t('analysisDetail.yaraMatchInfo')}
-          >
-            <div className="space-y-3">
+        <Card
+          title={`${t('analysisDetail.yaraMatches')} (${analysis.yara_matches.length})`}
+          subtitle={t('analysisDetail.yaraMatchInfo')}
+        >
+          <div className="space-y-3">
               {analysis.yara_matches.map((match: any, index: number) => {
                 // Defensive checks - ensure match is an object
                 if (!match || typeof match !== 'object') {
@@ -150,7 +150,7 @@ const AnalysisDetail: React.FC = () => {
                 }
                 
                 // Ensure rule_name exists - có thể là rule_name hoặc rule
-                const ruleName = match.rule_name || match.rule || `Rule ${index + 1}`
+                const ruleName = match.rule_name || match.rule || t('analysisDetail.ruleDefault', { index: index + 1 })
                 if (!ruleName) {
                   return null
                 }
@@ -169,16 +169,16 @@ const AnalysisDetail: React.FC = () => {
                 const matchedStrings = Array.isArray(match.matched_strings) ? match.matched_strings : []
                 
                 return (
-                  <div
+              <div
                     key={match.id || index}
-                    className="p-4 bg-yellow-900/20 border border-yellow-600 rounded-lg"
-                  >
+                className="p-4 bg-yellow-900/20 border border-yellow-600 rounded-lg"
+              >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <p className="font-medium text-yellow-400">{ruleName}</p>
-                        {match.description && (
-                          <p className="text-sm text-gray-400 mt-1">{match.description}</p>
-                        )}
+                {match.description && (
+                  <p className="text-sm text-gray-400 mt-1">{match.description}</p>
+                )}
                         <div className="mt-2 flex flex-wrap gap-2 items-center">
                           {match.author && (
                             <span className="text-xs text-gray-500">
@@ -199,14 +199,14 @@ const AnalysisDetail: React.FC = () => {
                       </div>
                     </div>
                     {tags.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="mt-2 flex flex-wrap gap-2">
                         {tags.map((tag: string, tagIndex: number) => (
-                          <Badge key={tagIndex} variant="warning">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
+                      <Badge key={tagIndex} variant="warning">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
                     {matchedStrings.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-yellow-700/50">
                         <p className="text-xs font-semibold text-gray-400 mb-2">
@@ -294,9 +294,9 @@ const AnalysisDetail: React.FC = () => {
                       {severityText}
                     </Badge>
                     <span className="text-gray-400 text-sm">
-                      {matchCount} {matchCount > 1 ? t('analysisDetail.rules') : t('analysisDetail.rule')} khớp
+                      {t('analysisDetail.matchesCount', { count: matchCount, rules: matchCount > 1 ? t('analysisDetail.rules') : t('analysisDetail.rule') })}
                     </span>
-                  </div>
+              </div>
                   
                   {uniqueTypes.length > 0 && (
                     <div>
@@ -304,8 +304,8 @@ const AnalysisDetail: React.FC = () => {
                       <div className="flex flex-wrap gap-2">
                         {uniqueTypes.map((type, idx) => (
                           <Badge key={idx} variant="warning">{type}</Badge>
-                        ))}
-                      </div>
+            ))}
+          </div>
                     </div>
                   )}
                   
@@ -355,7 +355,7 @@ const AnalysisDetail: React.FC = () => {
                 </div>
               )
             })()}
-          </Card>
+        </Card>
         </>
       )}
 
@@ -382,8 +382,8 @@ const AnalysisDetail: React.FC = () => {
                   key={index}
                   className="block text-xs bg-gray-700 text-gray-300 p-2 rounded break-all font-mono"
                 >
-                  {str}
-                </code>
+                    {str}
+                  </code>
               ))}
               {analysis.suspicious_strings.length > 50 && (
                 <p className="text-gray-400 text-sm text-center pt-2">
@@ -482,7 +482,7 @@ const AnalysisDetail: React.FC = () => {
                                   : item.score.toFixed(6)
                               }
                               {item.score === 0 && (
-                                <span className="text-yellow-400 ml-2">(Very clean file)</span>
+                                <span className="text-yellow-400 ml-2">({t('upload.veryCleanFile')})</span>
                               )}
                             </p>
                             {item.threshold !== undefined && (
@@ -587,7 +587,7 @@ const AnalysisDetail: React.FC = () => {
                 <div className="text-xs text-gray-300">
                   {Object.entries(stats.rating_distribution)
                     .filter(([_, count]) => count > 0)
-                    .map(([star, count]) => `${star}⭐:${count}`)
+                    .map(([star, count]) => `${star}⭐: ${count}`)
                     .join(', ')}
                 </div>
               </div>
@@ -652,7 +652,7 @@ const AnalysisDetail: React.FC = () => {
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-yellow-400">{'⭐'.repeat(r.rating)}</span>
-                    <span className="text-white font-semibold">{r.rating}/5</span>
+                    <span className="text-white font-semibold">{r.rating}{t('common.ratingOutOf')}</span>
                   </div>
                   {r.reviewer_name && (
                     <span className="text-gray-400 text-sm">{t('analysisDetail.by')} {r.reviewer_name}</span>
@@ -660,7 +660,7 @@ const AnalysisDetail: React.FC = () => {
                 </div>
                 {r.comment && <p className="text-gray-300 text-sm mt-2">{r.comment}</p>}
                 <div className="text-xs text-gray-500 mt-2">
-                  {new Date(r.created_at).toLocaleString()}
+                  {new Date(r.created_at).toLocaleDateString() + ' ' + new Date(r.created_at).toLocaleTimeString()}
                 </div>
               </div>
             ))}

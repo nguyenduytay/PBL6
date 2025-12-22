@@ -23,7 +23,13 @@
     "noFolderSelected": "未选择文件夹",
     "expandSidebar": "展开侧边栏",
     "collapseSidebar": "折叠侧边栏",
-    "systemInfo": "系统信息"
+    "systemInfo": "系统信息",
+    "unitMB": "MB",
+    "unitGB": "GB",
+    "unitKB": "KB",
+    "unitBytes": "字节",
+    "unitSeconds": "秒",
+    "ratingOutOf": "/5"
   },
   "pagination": {
     "itemsPerPage": "每页项目数",
@@ -101,6 +107,7 @@
     "score": "分数",
     "threshold": "阈值",
     "viewMore": "查看更多 →",
+    "veryCleanFile": "非常干净的文件",
     "peFile": "PE",
     "notPeFile": "非 PE",
     "resultType": "结果类型"
@@ -234,7 +241,9 @@
     "malwareTypeRansomware": "勒索软件",
     "malwareTypeKeylogger": "键盘记录器",
     "importantNote": "重要提示",
-    "yaraLimitationNote": "YARA 是基于模式的静态分析工具。YARA 结果只是完整恶意软件分析过程的一部分。应结合其他方法：动态分析、内存分析、逆向工程。"
+    "yaraLimitationNote": "YARA 是基于模式的静态分析工具。YARA 结果只是完整恶意软件分析过程的一部分。应结合其他方法：动态分析、内存分析、逆向工程。",
+    "ruleDefault": "规则 {{index}}",
+    "matchesCount": "{{count}} {{rules}} 匹配"
   },
   "batchScan": {
     "title": "批量扫描",

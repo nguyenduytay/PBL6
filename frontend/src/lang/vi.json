@@ -23,7 +23,13 @@
     "noFolderSelected": "Chưa chọn thư mục",
     "expandSidebar": "Mở rộng sidebar",
     "collapseSidebar": "Thu gọn sidebar",
-    "systemInfo": "Thông tin hệ thống"
+    "systemInfo": "Thông tin hệ thống",
+    "unitMB": "MB",
+    "unitGB": "GB",
+    "unitKB": "KB",
+    "unitBytes": "bytes",
+    "unitSeconds": "s",
+    "ratingOutOf": "/5"
   },
   "pagination": {
     "itemsPerPage": "Số mục mỗi trang",
@@ -102,6 +108,7 @@
     "score": "Score",
     "threshold": "Threshold",
     "viewMore": "Xem thêm →",
+    "veryCleanFile": "File rất sạch",
     "peFile": "PE",
     "notPeFile": "Không phải PE",
     "resultType": "Loại kết quả"
@@ -233,7 +240,9 @@
     "malwareTypeRansomware": "Ransomware",
     "malwareTypeKeylogger": "Keylogger",
     "importantNote": "Lưu ý quan trọng",
-    "yaraLimitationNote": "YARA là công cụ phân tích tĩnh dựa trên mẫu. Kết quả YARA chỉ là một phần của quy trình phân tích mã độc hoàn chỉnh. Cần kết hợp với các phương pháp khác: phân tích động, phân tích memory, reverse engineering."
+    "yaraLimitationNote": "YARA là công cụ phân tích tĩnh dựa trên mẫu. Kết quả YARA chỉ là một phần của quy trình phân tích mã độc hoàn chỉnh. Cần kết hợp với các phương pháp khác: phân tích động, phân tích memory, reverse engineering.",
+    "ruleDefault": "Quy tắc {{index}}",
+    "matchesCount": "{{count}} {{rules}} khớp"
   },
   "batchScan": {
     "title": "Quét hàng loạt",

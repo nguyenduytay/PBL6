@@ -39,7 +39,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results, query, total }) 
                     {analysis.md5 && <span>{t('analysisDetail.md5')}: {analysis.md5}</span>}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
-                    {t('search.createdAt')}: {new Date(analysis.created_at).toLocaleString()}
+                    {t('search.createdAt')}: {new Date(analysis.created_at).toLocaleDateString() + ' ' + new Date(analysis.created_at).toLocaleTimeString()}
                   </div>
                 </div>
               </div>

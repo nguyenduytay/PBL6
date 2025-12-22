@@ -323,7 +323,7 @@ const Upload: React.FC = () => {
                     </div>
                     <div>
                       <span className="text-gray-400 text-sm">{t('upload.analysisTime')}:</span>
-                      <p className="text-white">{result.analysis_time?.toFixed(2)}s</p>
+                      <p className="text-white">{result.analysis_time ? `${result.analysis_time.toFixed(2)}${t('common.unitSeconds')}` : '-'}</p>
                     </div>
                     {result.id && (
                       <p className="text-sm text-green-400 mt-2">
