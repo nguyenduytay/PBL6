@@ -32,10 +32,10 @@ Dự án được xây dựng theo **kiến trúc 3-tier** hiện đại:
 │  React 18 + TypeScript + Vite + Tailwind CSS            │
 │  - Giao diện người dùng (Dashboard, Upload, Analyses)   │
 │  - Multi-language support (vi, en, zh)                  │
-│  - Real-time updates với WebSocket                       │
+│  - Progress tracking với polling                        │
 │  - Port: 3000 (development)                             │
 └──────────────────┬──────────────────────────────────────┘
-                   │ HTTP/REST API + WebSocket
+                   │ HTTP/REST API
 ┌──────────────────▼──────────────────────────────────────┐
 │                    Backend Layer                         │
 │  FastAPI (Python 3.10) - Layered Architecture          │
@@ -173,7 +173,7 @@ flowchart TD
 #### Batch Scan
 - Upload folder hoặc archive (ZIP, TAR)
 - Quét nhiều file cùng lúc (async)
-- Theo dõi tiến trình quét qua WebSocket
+- Theo dõi tiến trình quét qua polling (check status button)
 - Xem kết quả tổng hợp
 
 #### Analysis History
@@ -197,9 +197,9 @@ flowchart TD
 - Authentication & Authorization (JWT) - planned
 - Rate limiting - planned
 
-#### WebSocket Support
-- Real-time progress updates cho batch scan
-- Dynamic analysis tracking (tương lai)
+#### Progress Tracking
+- Progress updates cho batch scan qua polling (check status button)
+- Batch ID để theo dõi tiến trình
 
 ### 5. Giao Diện Web
 
@@ -254,7 +254,7 @@ flowchart TD
   - `GET /api/search` - Search analyses
   - `GET /api/export` - Export data
   - `GET /api/health` - Health check
-  - `WS /api/ws/{task_id}` - WebSocket progress
+  - `GET /api/scan/batch/{batch_id}/status` - Batch scan status (polling)
 
 ### Services Layer (`app/services/`)
 - **AnalyzerService**: Orchestrator chính - điều phối các service
@@ -735,9 +735,9 @@ GET /api/export/excel?limit=1000&offset=0
 GET /api/health
 ```
 
-### WebSocket
+### Progress Tracking
 ```http
-WS /api/ws/{task_id}
+GET /api/scan/batch/{batch_id}/status
 ```
 
 ---
@@ -875,7 +875,7 @@ WS /api/ws/{task_id}
 #### 6. User Experience
 - **Modern UI**: React + TypeScript + Tailwind CSS
 - **Responsive design**: Hoạt động tốt trên mọi thiết bị
-- **Real-time updates**: WebSocket support
+- **Progress tracking**: Polling-based status updates
 - **Export features**: CSV, JSON, Excel
 - **Multi-language**: Hỗ trợ 3 ngôn ngữ
 
